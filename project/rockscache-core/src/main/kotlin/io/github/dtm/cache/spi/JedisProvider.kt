@@ -4,24 +4,28 @@ import redis.clients.jedis.JedisPool
 
 class JedisProvider(
     private val pool: JedisPool
-) : Provider {
+) : AbstractRedisProvider() {
 
-    override fun executeBatchScript(
-        block: LuaAppender.() -> Unit
+    override fun executeLuaCommand(command: LuaCommand): Any =
+        pool.resource.use { jedis ->
+            jedis.eval(command.lua, command.keys, command.args)
+        }
+
+    override fun executeLuaCommands(
+        commands: Collection<LuaCommand>
     ): List<Any> =
         pool.resource.use { jedis ->
             jedis.pipelined().use { pipeline ->
-                val appender = object : LuaAppender {
-                    override fun append(
-                        lua: String,
-                        keys: List<String>,
-                        args: List<String>
-                    ) {
-                        pipeline.eval(lua, keys, args)
-                    }
+                for (command in commands) {
+                    pipeline.eval(command.lua, command.keys, command.args)
                 }
-                block(appender)
                 pipeline.syncAndReturnAll()
             }
         }
+
+    override fun delete(keys: Collection<String>) {
+        pool.resource.use { jedis ->
+            jedis.del(*keys.toTypedArray())
+        }
+    }
 }

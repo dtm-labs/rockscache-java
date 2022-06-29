@@ -1,8 +1,9 @@
 package io.github.dtm.cache
 
 import io.github.dtm.cache.impl.CacheClientImpl
-import io.github.dtm.cache.spi.Provider
-import io.github.dtm.cache.spi.Serializer
+import io.github.dtm.cache.spi.KeySerializer
+import io.github.dtm.cache.spi.RedisProvider
+import io.github.dtm.cache.spi.ValueSerializer
 import kotlin.reflect.KClass
 
 interface CacheClient{
@@ -17,8 +18,8 @@ interface CacheClient{
     ): Cache<K, V> =
         createCache(
             keyPrefix,
-            Serializer.jackson(keyType),
-            Serializer.jackson(valueType)
+            KeySerializer.jackson(keyType),
+            ValueSerializer.jackson(valueType)
         )
 
     /**
@@ -31,21 +32,21 @@ interface CacheClient{
     ): Cache<K, V> =
         createCache(
             keyPrefix,
-            Serializer.jackson(keyType),
-            Serializer.jackson(valueType)
+            KeySerializer.jackson(keyType),
+            ValueSerializer.jackson(valueType)
         )
 
     fun <K, V> createCache(
         keyPrefix: String,
-        keySerializer: Serializer<K>,
-        valueSerializer: Serializer<V>
+        keySerializer: KeySerializer<K>,
+        valueSerializer: ValueSerializer<V>
     ): Cache<K, V>
 
     interface Builder {
 
         fun setOptions(options: Options): Builder
 
-        fun setProvider(provider: Provider): Builder
+        fun setProvider(provider: RedisProvider): Builder
 
         fun setKeyPrefix(keyPrefix: String): Builder
 

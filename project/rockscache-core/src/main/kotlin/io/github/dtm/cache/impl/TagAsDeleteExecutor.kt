@@ -1,9 +1,9 @@
 package io.github.dtm.cache.impl
 
-import io.github.dtm.cache.spi.Provider
+import io.github.dtm.cache.spi.RedisProvider
 
 internal class TagAsDeleteExecutor(
-    private val provider: Provider,
+    private val provider: RedisProvider,
     private val redisKeys: Collection<String>
 ) {
     fun execute() {

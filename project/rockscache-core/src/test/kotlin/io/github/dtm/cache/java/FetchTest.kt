@@ -13,12 +13,18 @@ class FetchTest {
     fun test() {
         val cache = CacheClient
             .newBuilder()
-            .setKeyPrefix("rockscache-java")
+            .setKeyPrefix("test-scope-")
             .setProvider(JedisProvider(JedisPool("localhost", 6379)))
             .build()
-            .createCache("int-to-string", Int::class, String::class)
-        cache.fetch(1, Duration.ZERO) {
-            TODO()
+            .createCache("int2str-", Int::class, String::class)
+        cache.fetch(1, Duration.ofMinutes(1)) {
+            println("LOAD------------------------------------------------")
+            when (it) {
+                1 -> "One"
+                else -> TODO()
+            }
+        }.let {
+            println(it)
         }
     }
 }

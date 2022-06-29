@@ -2,29 +2,30 @@ package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.Cache
 import io.github.dtm.cache.Options
-import io.github.dtm.cache.spi.Provider
-import io.github.dtm.cache.spi.Serializer
+import io.github.dtm.cache.spi.KeySerializer
+import io.github.dtm.cache.spi.RedisProvider
+import io.github.dtm.cache.spi.ValueSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 
 internal class CacheImpl<K, V>(
     private val keyPrefix: String,
     private val options: Options,
-    private val provider: Provider,
-    private val keySerializer: Serializer<K>,
-    private val valueSerializer: Serializer<V>
+    private val provider: RedisProvider,
+    private val keySerializer: KeySerializer<K>,
+    private val valueSerializer: ValueSerializer<V>
 ) : Cache<K, V> {
 
     override fun fetchAll(
         keys: Collection<K>,
         expire: Duration,
-        loader: (Collection<K>) -> Map<K, V>
-    ): Map<K, V> =
+        loader: (Collection<K>) -> Map<K, V?>
+    ): Map<K, V?> =
         if (options.isDisableCacheRead) {
             loader(keys)
         } else {
             val keySet = keys as? Set<K> ?: keys.toSet()
-            var resultMap: Map<K, V> = emptyMap()
+            var resultMap: Map<K, V?> = emptyMap()
             split(keySet, options.batchSize) {
                 val map = FetchExecutor(
                     keyPrefix,
@@ -33,6 +34,7 @@ internal class CacheImpl<K, V>(
                     keySerializer,
                     valueSerializer,
                     it,
+                    expire,
                     loader
                 ).execute()
                 resultMap = if (resultMap.isEmpty()) {
@@ -51,7 +53,7 @@ internal class CacheImpl<K, V>(
         if (LOGGER.isDebugEnabled) {
             LOGGER.debug("Delete keys, keyPrefix: $keyPrefix, keys: $keys")
         }
-        val redisKeys = keys.map { "$keyPrefix$it" }.toSet()
+        val redisKeys = keys.map { "$keyPrefix${keySerializer.serialize(it)}" }.toSet()
         split(redisKeys, options.batchSize) {
             TagAsDeleteExecutor(provider, it).execute()
         }

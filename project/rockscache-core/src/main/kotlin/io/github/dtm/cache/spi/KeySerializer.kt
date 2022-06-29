@@ -4,33 +4,27 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
-interface Serializer<T> {
-
-    fun serialize(value: T): ByteArray
-
-    fun deserialize(bytes: ByteArray): T
-
+interface KeySerializer<T> {
+    
+    fun serialize(key: T): String
+    
     companion object {
 
         /**
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>): Serializer<T> =
+        fun <T> jackson(type: Class<T>): KeySerializer<T> =
             jackson(type, ObjectMapper())
 
         /**
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>, mapper: ObjectMapper): Serializer<T> {
-            return object : Serializer<T> {
-
-                override fun serialize(value: T): ByteArray =
-                    mapper.writeValueAsBytes(value)
-
-                override fun deserialize(bytes: ByteArray): T =
-                    mapper.readValue(bytes, type)
+        fun <T> jackson(type: Class<T>, mapper: ObjectMapper): KeySerializer<T> {
+            return object : KeySerializer<T> {
+                override fun serialize(value: T): String =
+                    mapper.writeValueAsString(value)
             }
         }
 
@@ -41,7 +35,7 @@ interface Serializer<T> {
         fun <T: Any> jackson(
             type: KClass<T>,
             mapper: ObjectMapper? = null
-        ): Serializer<T> =
+        ): KeySerializer<T> =
             jackson(type.java, mapper ?: jacksonObjectMapper())
     }
 }

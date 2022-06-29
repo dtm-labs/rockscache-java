@@ -24,7 +24,7 @@ interface Cache<K, V> {
     fun fetch(
         key: K,
         expire: Duration,
-        loader: (K) -> V
+        loader: (K) -> V?
     ): V? =
         fetchAll(
             setOf(key),
@@ -41,7 +41,7 @@ interface Cache<K, V> {
         keys: Collection<K>,
         expire: Duration,
         loader: BatchLoader<K, V>
-    ): Map<K, V> =
+    ): Map<K, V?> =
         fetchAll(keys, expire) {
             loader.loadAll(keys)
         }
@@ -52,8 +52,8 @@ interface Cache<K, V> {
     fun fetchAll(
         keys: Collection<K>,
         expire: Duration,
-        loader: (Collection<K>) -> Map<K, V>
-    ): Map<K, V>
+        loader: (Collection<K>) -> Map<K, V?>
+    ): Map<K, V?>
 
     fun tagAsDeleted(key: K) {
         tagAllAsDeleted(setOf(key))
