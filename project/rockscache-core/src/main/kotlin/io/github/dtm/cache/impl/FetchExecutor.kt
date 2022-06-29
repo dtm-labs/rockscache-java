@@ -1,7 +1,7 @@
 package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.Consistency
-import io.github.dtm.cache.LoadingException
+import io.github.dtm.cache.DirtyCacheException
 import io.github.dtm.cache.Options
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.RedisProvider
@@ -17,7 +17,7 @@ internal class FetchExecutor<K, V>(
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>,
     private val expire: Duration,
-    private val loader: (Collection<K>) -> Map<K, V?>,
+    private val loader: (Collection<K>) -> Map<K, V>,
     keys: Collection<K>
 ) {
     private val uuid = UUID.randomUUID()
@@ -30,9 +30,9 @@ internal class FetchExecutor<K, V>(
             it.key
         }
 
-    fun execute(): Map<K, V?> =
+    fun execute(): Map<K, V> =
         if (options.consistency == Consistency.STRONG) {
-            TODO()
+            strongFetch()
         } else {
             weakFetch()
         }
@@ -68,14 +68,14 @@ internal class FetchExecutor<K, V>(
                     )
                     throw row
                 }
-                (row as List<Any>).let {
-                    it[0] to it[1]
+                (row as List<Any?>).let {
+                    it[0] to (it[1] ?: LOCKED)
                 }
             }
         )
     }
 
-    private fun luaSet(map: Map<String, V?>) {
+    private fun luaSet(map: Map<String, V>) {
         provider.eval {
             for ((key, value) in map) {
                 append(
@@ -96,10 +96,12 @@ internal class FetchExecutor<K, V>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun weakFetch(): Map<K, V?> {
-        val map = luaGet(keyMap.keys.toList())
+    private fun weakFetch(): Map<K, V> {
+
+        val map = luaGet(keyMap.keys)
+
         while (true) {
-            val missedKeys = map.filterValues { it.first === null && it.second != "LOCKED" }.keys
+            val missedKeys = map.filterValues { it.first === null && it.second != LOCKED }.keys
             if (missedKeys.isEmpty()) {
                 break
             }
@@ -112,26 +114,60 @@ internal class FetchExecutor<K, V>(
             map += luaGet(missedKeys)
         }
 
-        if (options.consistency == Consistency.ALLOW_LOADING_EXCEPTION) {
-            val loadingKeys = map.filterValues { it.first != null && it.second == "LOCKED" }
-            if (loadingKeys.isNotEmpty()) {
-                LOGGER.warn("Keys: $loadingKeys is loading, throws LoadingException")
-                throw LoadingException("Some data is loading")
+        if (options.consistency == Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) {
+            val dirtyKeys = map.filterValues { it.first != null && it.second == LOCKED }.keys
+            if (dirtyKeys.isNotEmpty()) {
+                LOGGER.warn("Keys: $dirtyKeys is loading, throws LoadingException")
+                throw DirtyCacheException("There are some dirty data in cache: $dirtyKeys", dirtyKeys)
             }
         }
-        val resultMap = map.entries.associateBy({
+
+        val missedKeys = map.filterValues { it.first === null && it.second == LOCKED }.keys
+        return fetchMore(map, missedKeys)
+    }
+
+    private fun strongFetch(): Map<K, V> {
+
+        if (LOGGER.isDebugEnabled) {
+            LOGGER.debug("strongFetch: keys: ${keyMap.keys}")
+        }
+
+        val map = luaGet(keyMap.keys)
+
+        while (true) {
+            val missedKeys = map.filterValues { it.first !== null && it.second != LOCKED }.keys
+            if (missedKeys.isEmpty()) {
+                break
+            }
+            if (LOGGER.isDebugEnabled) {
+                LOGGER.debug(
+                    "$missedKeys are locked by other, so sleep ${options.lockSleep.toMillis()}ms"
+                )
+            }
+            Thread.sleep(options.lockSleep.toMillis())
+            map += luaGet(missedKeys)
+        }
+
+        val lockedKeys = map.filterValues { it.second == LOCKED }.keys
+        return fetchMore(map, lockedKeys)
+    }
+
+    private fun fetchMore(
+        alreadyMap: Map<String, Pair<Any?, Any>>,
+        missedKeys: Collection<String>
+    ): Map<K, V> {
+        val resultMap = alreadyMap.entries.associateBy({
             keyMap[it.key] as K
         }) {
-            it.value.first as V?
+            it.value.first as V
         }
-        val missedKeys = map.filterValues { it.first == null && it.second == "LOCKED" }.keys
         if (missedKeys.isEmpty()) {
             return resultMap
         }
         return resultMap + fetchNew(missedKeys)
     }
 
-    private fun fetchNew(missedRedisKeys: Collection<String>): Map<K, V?> {
+    private fun fetchNew(missedRedisKeys: Collection<String>): Map<K, V> {
         val missedKeys = missedRedisKeys.map { keyMap[it]!! }
         if (LOGGER.isInfoEnabled) {
             LOGGER.info("Load from database: $missedRedisKeys")
@@ -156,6 +192,8 @@ internal class FetchExecutor<K, V>(
         @JvmStatic
         private val LOGGER = LoggerFactory.getLogger(FetchExecutor::class.java)
 
+        private const val LOCKED = "LOCKED"
+
         @JvmStatic
         private val LUA_GET = """-- luaGet
             |local v = redis.call('HGET', KEYS[1], 'value')
@@ -163,7 +201,7 @@ internal class FetchExecutor<K, V>(
             |if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
             |    redis.call('HSET', KEYS[1], 'lockUntil', tonumber(ARGV[2]))
             |    redis.call('HSET', KEYS[1], 'lockOwner', ARGV[3])
-            |    return { v, 'LOCKED' }
+            |    return { v, '$LOCKED' }
             |end
             |return {v, lu}
         """.trimMargin()

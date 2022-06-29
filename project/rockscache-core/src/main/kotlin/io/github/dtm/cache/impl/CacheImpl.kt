@@ -16,7 +16,7 @@ internal class CacheImpl<K, V>(
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>,
     private val expire: Duration,
-    private val loader: (Collection<K>) -> Map<K, V?>,
+    private val loader: (Collection<K>) -> Map<K, V>,
 ) : Cache<K, V> {
 
     override fun toCache(consistency: Consistency): Cache<K, V> =
@@ -34,15 +34,15 @@ internal class CacheImpl<K, V>(
             )
         }
 
-    override fun fetchAll(keys: Collection<K>): Map<K, V?> =
+    override fun fetchAll(keys: Collection<K>): Map<K, V> =
         fetchAll(keys, options.consistency)
 
-    override fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V?> =
+    override fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V> =
         if (options.isDisableCacheRead) {
             loader(keys)
         } else {
             val keySet = keys as? Set<K> ?: keys.toSet()
-            var resultMap: Map<K, V?> = emptyMap()
+            var resultMap: Map<K, V> = emptyMap()
             split(keySet, options.batchSize) {
                 val map = FetchExecutor(
                     keyPrefix,

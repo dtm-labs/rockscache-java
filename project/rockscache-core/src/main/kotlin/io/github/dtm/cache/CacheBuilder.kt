@@ -8,7 +8,7 @@ interface CacheBuilder<K, V> {
     /**
      * For kotlin, not java
      */
-    fun setLoader(loader: (Collection<K>) -> Map<K, V?>): CacheBuilder<K, V>
+    fun setLoader(loader: (Collection<K>) -> Map<K, V>): CacheBuilder<K, V>
 
     /**
      * For java, not kotlin

@@ -17,11 +17,11 @@ internal class CacheBuilderImpl<K, V>(
 
     private var expire: Duration? = null
 
-    private var loader: ((Collection<K>) -> Map<K, V?>)? = null
+    private var loader: ((Collection<K>) -> Map<K, V>)? = null
 
     private var consistency: Consistency? = null
 
-    override fun setLoader(loader: (Collection<K>) -> Map<K, V?>): CacheBuilder<K, V> {
+    override fun setLoader(loader: (Collection<K>) -> Map<K, V>): CacheBuilder<K, V> {
         this.loader = loader
         return this
     }
@@ -59,7 +59,7 @@ internal class CacheBuilderImpl<K, V>(
 
     internal fun toDsl(): CacheBuilderDsl<K, V> =
         object : CacheBuilderDsl<K, V> {
-            override var loader: ((Collection<K>) -> Map<K, V?>)?
+            override var loader: ((Collection<K>) -> Map<K, V>)?
                 by this@CacheBuilderImpl::loader
 
             override var expire: Duration?

@@ -4,7 +4,7 @@ import java.time.Duration
 
 interface CacheBuilderDsl<K, V> {
 
-    var loader: ((Collection<K>) -> Map<K, V?>)?
+    var loader: ((Collection<K>) -> Map<K, V>)?
 
     var expire: Duration?
 

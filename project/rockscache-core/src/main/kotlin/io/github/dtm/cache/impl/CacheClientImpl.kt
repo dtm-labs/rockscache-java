@@ -1,10 +1,8 @@
 package io.github.dtm.cache.impl
 
-import io.github.dtm.cache.Cache
 import io.github.dtm.cache.CacheBuilder
 import io.github.dtm.cache.CacheClient
 import io.github.dtm.cache.Options
-import io.github.dtm.cache.java.Loader
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.RedisProvider
 import io.github.dtm.cache.spi.ValueSerializer

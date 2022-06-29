@@ -10,9 +10,9 @@ interface Cache<K, V> {
     fun fetch(key: K, consistency: Consistency): V? =
         fetchAll(setOf(key), consistency)[key]
 
-    fun fetchAll(keys: Collection<K>): Map<K, V?>
+    fun fetchAll(keys: Collection<K>): Map<K, V>
 
-    fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V?>
+    fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V>
 
     fun tagAsDeleted(key: K) {
         tagAllAsDeleted(setOf(key))

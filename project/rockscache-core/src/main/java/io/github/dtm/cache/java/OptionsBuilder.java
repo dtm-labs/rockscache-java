@@ -133,8 +133,8 @@ public class OptionsBuilder {
      *              the db result, but performance is bad.
      *     </li>
      *     <li>
-     *         {@link Consistency#ALLOW_LOADING_EXCEPTION}: Throws
-     *         {@link LoadingException} if value calculation is not done.
+     *         {@link Consistency#ALLOW_DIRTY_CACHE_EXCEPTION}: Throws
+     *         {@link DirtyCacheException} if value calculation is not done.
      *         The UI should show loading animation for this exception.
      *     </li>
      * </ul>

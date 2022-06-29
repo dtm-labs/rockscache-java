@@ -70,8 +70,8 @@ data class Options(
      * the db result, but performance is bad.
      *
      *  *
-     * [Consistency.ALLOW_LOADING_EXCEPTION]: Throws
-     * [LoadingException] if value calculation is not done.
+     * [Consistency.ALLOW_DIRTY_CACHE_EXCEPTION]: Throws
+     * [DirtyCacheException] if value calculation is not done.
      * The UI should show loading animation for this exception.
      *
      *
