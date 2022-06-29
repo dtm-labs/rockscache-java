@@ -3,6 +3,6 @@ package io.github.dtm.cache
 /**
  * @author 陈涛
  */
-class BusyException(
+class LoadingException(
     message: String
 ) : RuntimeException(message)

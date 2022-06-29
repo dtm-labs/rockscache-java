@@ -6,5 +6,5 @@ package io.github.dtm.cache
 enum class Consistency {
     EVENTUAL,
     STRONG,
-    ALLOW_BUSY_EXCEPTION
+    ALLOW_LOADING_EXCEPTION
 }

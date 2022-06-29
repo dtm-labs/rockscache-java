@@ -33,6 +33,8 @@ public class OptionsBuilder {
     
     private Consistency consistency = Constants.DEFAULT_CONSISTENCY;
 
+    private int batchSize = Constants.DEFAULT_BATCH_SIZE;
+
     /**
      * Set delay delete time for keys that are tag deleted. default is 10s
      */
@@ -131,8 +133,8 @@ public class OptionsBuilder {
      *              the db result, but performance is bad.
      *     </li>
      *     <li>
-     *         {@link Consistency#ALLOW_BUSY_EXCEPTION}: Throws
-     *         {@link BusyException} if value calculation is not done.
+     *         {@link Consistency#ALLOW_LOADING_EXCEPTION}: Throws
+     *         {@link LoadingException} if value calculation is not done.
      *         The UI should show loading animation for this exception.
      *     </li>
      * </ul>
@@ -140,6 +142,27 @@ public class OptionsBuilder {
     @NotNull
     public OptionsBuilder setConsistency(@NotNull Consistency consistency) {
         this.consistency = consistency;
+        return this;
+    }
+
+    /**
+     * Set the BatchSize, default is 128.
+     *
+     * <p>
+     *      If user want to fetch/tagAsDeleted 150 keys: key1, key2, ..., key250
+     *      , they will be split into to three batches
+     * </p>
+     * <ul>
+     *     <li>key1, key2, ..., key100</li>
+     *     <li>key101, key102, ..., key200</li>
+     *     <li>key201, key2, ..., key250</li>
+     * </ul>
+     */
+    public OptionsBuilder setBatchSize(int batchSize) {
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("batchSize must not be less than 1");
+        }
+        this.batchSize = batchSize;
         return this;
     }
 
@@ -154,7 +177,8 @@ public class OptionsBuilder {
                 randomExpireAdjustment,
                 disableCacheRead,
                 disableCacheDelete,
-                consistency
+                consistency,
+                batchSize
         );
     }
 }

@@ -1,7 +1,7 @@
 package io.github.dtm.cache.java;
 
 @FunctionalInterface
-public interface Loader<T> {
+public interface Loader<K, V> {
 
-    T load(String key);
+    V load(K key);
 }

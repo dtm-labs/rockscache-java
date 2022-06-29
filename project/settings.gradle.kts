@@ -1,4 +1,4 @@
-rootProject.name = 'rockscache-java'
+rootProject.name = "rockscache-java"
 include("core")
 include("rockscache-core")
 

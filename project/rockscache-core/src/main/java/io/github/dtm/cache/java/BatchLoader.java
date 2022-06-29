@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Map;
 
 @FunctionalInterface
-public interface BatchLoader<T> {
+public interface BatchLoader<K, V> {
 
-    Map<String, T> loadAll(Collection<String> keys);
+    Map<K, V> loadAll(Collection<K> keys);
 }

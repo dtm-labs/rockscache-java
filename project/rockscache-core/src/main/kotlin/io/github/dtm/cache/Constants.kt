@@ -33,3 +33,5 @@ const val DEFAULT_DISABLE_CACHE_DELETE = false
 
 @JvmField
 val DEFAULT_CONSISTENCY = Consistency.EVENTUAL
+
+const val DEFAULT_BATCH_SIZE = 128

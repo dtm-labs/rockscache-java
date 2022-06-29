@@ -70,13 +70,28 @@ data class Options(
      * the db result, but performance is bad.
      *
      *  *
-     * [Consistency.ALLOW_BUSY_EXCEPTION]: Throws
-     * [BusyException] if value calculation is not done.
+     * [Consistency.ALLOW_LOADING_EXCEPTION]: Throws
+     * [LoadingException] if value calculation is not done.
      * The UI should show loading animation for this exception.
      *
      *
      */
-    val consistency: Consistency = DEFAULT_CONSISTENCY
+    val consistency: Consistency = DEFAULT_CONSISTENCY,
+
+    /**
+     * BatchSize, default is 128.
+     *
+     * <p>
+     *      If user want to fetch/tagAsDeleted 150 keys: key1, key2, ..., key250
+     *      , they will be split into to three batches
+     * </p>
+     * <ul>
+     *     <li>key1, key2, ..., key100</li>
+     *     <li>key101, key102, ..., key200</li>
+     *     <li>key201, key2, ..., key250</li>
+     * </ul>
+     */
+    val batchSize: Int = DEFAULT_BATCH_SIZE
 ) {
 
     companion object {
