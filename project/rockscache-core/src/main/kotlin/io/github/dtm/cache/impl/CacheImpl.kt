@@ -1,6 +1,7 @@
 package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.Cache
+import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.Options
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.RedisProvider
@@ -13,14 +14,30 @@ internal class CacheImpl<K, V>(
     private val options: Options,
     private val provider: RedisProvider,
     private val keySerializer: KeySerializer<K>,
-    private val valueSerializer: ValueSerializer<V>
+    private val valueSerializer: ValueSerializer<V>,
+    private val expire: Duration,
+    private val loader: (Collection<K>) -> Map<K, V?>,
 ) : Cache<K, V> {
 
-    override fun fetchAll(
-        keys: Collection<K>,
-        expire: Duration,
-        loader: (Collection<K>) -> Map<K, V?>
-    ): Map<K, V?> =
+    override fun toCache(consistency: Consistency): Cache<K, V> =
+        if (options.consistency == consistency) {
+            this
+        } else {
+            CacheImpl(
+                keyPrefix,
+                options.copy(consistency = consistency),
+                provider,
+                keySerializer,
+                valueSerializer,
+                expire,
+                loader
+            )
+        }
+
+    override fun fetchAll(keys: Collection<K>): Map<K, V?> =
+        fetchAll(keys, options.consistency)
+
+    override fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V?> =
         if (options.isDisableCacheRead) {
             loader(keys)
         } else {
@@ -29,13 +46,17 @@ internal class CacheImpl<K, V>(
             split(keySet, options.batchSize) {
                 val map = FetchExecutor(
                     keyPrefix,
-                    options,
+                    if (consistency == options.consistency) {
+                        options
+                    } else {
+                        options.copy(consistency = consistency)
+                    },
                     provider,
                     keySerializer,
                     valueSerializer,
-                    it,
                     expire,
-                    loader
+                    loader,
+                    it
                 ).execute()
                 resultMap = if (resultMap.isEmpty()) {
                     map
@@ -55,7 +76,7 @@ internal class CacheImpl<K, V>(
         }
         val redisKeys = keys.map { "$keyPrefix${keySerializer.serialize(it)}" }.toSet()
         split(redisKeys, options.batchSize) {
-            TagAsDeleteExecutor(provider, it).execute()
+            TagAsDeleteExecutor(options, provider, it).execute()
         }
     }
 

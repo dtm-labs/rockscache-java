@@ -1,6 +1,7 @@
 package io.github.dtm.cache.spi
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
@@ -15,7 +16,7 @@ interface KeySerializer<T> {
          */
         @JvmStatic
         fun <T> jackson(type: Class<T>): KeySerializer<T> =
-            jackson(type, ObjectMapper())
+            jackson(type, ObjectMapper().registerModule(JavaTimeModule()))
 
         /**
          * For java, not kotlin
@@ -23,8 +24,8 @@ interface KeySerializer<T> {
         @JvmStatic
         fun <T> jackson(type: Class<T>, mapper: ObjectMapper): KeySerializer<T> {
             return object : KeySerializer<T> {
-                override fun serialize(value: T): String =
-                    mapper.writeValueAsString(value)
+                override fun serialize(key: T): String =
+                    mapper.writeValueAsString(key)
             }
         }
 
@@ -36,6 +37,11 @@ interface KeySerializer<T> {
             type: KClass<T>,
             mapper: ObjectMapper? = null
         ): KeySerializer<T> =
-            jackson(type.java, mapper ?: jacksonObjectMapper())
+            jackson(
+                type.java,
+                mapper
+                    ?: jacksonObjectMapper()
+                        .registerModule(JavaTimeModule())
+            )
     }
 }

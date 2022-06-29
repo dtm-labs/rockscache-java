@@ -1,8 +1,10 @@
 package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.Cache
+import io.github.dtm.cache.CacheBuilder
 import io.github.dtm.cache.CacheClient
 import io.github.dtm.cache.Options
+import io.github.dtm.cache.java.Loader
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.RedisProvider
 import io.github.dtm.cache.spi.ValueSerializer
@@ -23,13 +25,13 @@ internal class CacheClientImpl(
         }
     }
 
-    override fun <K, V> createCache(
+    override fun <K, V> newCacheBuilder(
         keyPrefix: String,
         keySerializer: KeySerializer<K>,
         valueSerializer: ValueSerializer<V>
-    ): Cache<K, V> =
-        CacheImpl(
-            this.keyPrefix + keyPrefix,
+    ): CacheBuilder<K, V> =
+        CacheBuilderImpl(
+            "${this.keyPrefix}$keyPrefix",
             options,
             provider,
             keySerializer,

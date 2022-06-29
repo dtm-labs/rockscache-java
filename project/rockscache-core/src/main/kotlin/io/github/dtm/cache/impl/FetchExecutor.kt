@@ -16,9 +16,9 @@ internal class FetchExecutor<K, V>(
     private val provider: RedisProvider,
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>,
-    keys: Collection<K>,
     private val expire: Duration,
-    private val loader: (Collection<K>) -> Map<K, V?>
+    private val loader: (Collection<K>) -> Map<K, V?>,
+    keys: Collection<K>
 ) {
     private val uuid = UUID.randomUUID()
 
@@ -44,7 +44,7 @@ internal class FetchExecutor<K, V>(
         val now = System.currentTimeMillis()
         val args = listOf(
             now.toString(),
-            (now + options.lockExpire.toSeconds()).toString(),
+            (now + options.lockExpire.toMillis()).toString(),
             uuid.toString()
         )
 
@@ -159,9 +159,9 @@ internal class FetchExecutor<K, V>(
         @JvmStatic
         private val LUA_GET = """-- luaGet
             |local v = redis.call('HGET', KEYS[1], 'value')
-            |local lu = redis.call('HGET', KEYS[1], 'lockUtil')
+            |local lu = redis.call('HGET', KEYS[1], 'lockUntil')
             |if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
-            |    redis.call('HSET', KEYS[1], 'lockUtil', ARGV[2])
+            |    redis.call('HSET', KEYS[1], 'lockUntil', tonumber(ARGV[2]))
             |    redis.call('HSET', KEYS[1], 'lockOwner', ARGV[3])
             |    return { v, 'LOCKED' }
             |end
@@ -172,13 +172,12 @@ internal class FetchExecutor<K, V>(
         private val LUA_SET = """-- luaSet
             |local o = redis.call('HGET', KEYS[1], 'lockOwner')
             |if o ~= ARGV[2] then
-            |    return 0
+            |    return
             |end
             |redis.call('HSET', KEYS[1], 'value', ARGV[1])
-            |redis.call('HDEL', KEYS[1], 'lockUtil')
+            |redis.call('HDEL', KEYS[1], 'lockUntil')
             |redis.call('HDEL', KEYS[1], 'lockOwner')
             |redis.call('EXPIRE', KEYS[1], ARGV[3])
-            |return 1
         """.trimMargin()
     }
 }

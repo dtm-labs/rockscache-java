@@ -2,7 +2,7 @@ package io.github.dtm.cache.spi
 
 abstract class AbstractRedisProvider : RedisProvider {
 
-    final override fun eval(block: LuaAppender.() -> Unit): List<Any> {
+    final override fun eval(block: LuaAppender.() -> Unit): List<Any?> {
         val commands = mutableListOf<LuaCommand>()
         val appender = object : LuaAppender {
             override fun append(
@@ -25,11 +25,11 @@ abstract class AbstractRedisProvider : RedisProvider {
 
     protected abstract fun executeLuaCommand(
         command: LuaCommand
-    ): Any
+    ): Any?
 
     protected abstract fun executeLuaCommands(
         commands: Collection<LuaCommand>
-    ): List<Any>
+    ): List<Any?>
 
     protected data class LuaCommand(
         val lua: String,

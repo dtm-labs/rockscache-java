@@ -16,15 +16,19 @@ class FetchTest {
             .setKeyPrefix("test-scope2-")
             .setProvider(JedisProvider(JedisPool("localhost", 6379)))
             .build()
-            .createCache("int2str-", Int::class, String::class)
-        cache.fetch(1, Duration.ofSeconds(10)) {
-            println("LOAD------------------------------------------------")
-            when (it) {
-                1 -> "One"
-                else -> TODO()
+            .newCache("int2str-", Int::class, String::class) {
+                loader = { keys ->
+                    println("LOAD------------------------------------------------")
+                    keys.associateBy({it}) {
+                        when (it) {
+                            1 -> "One"
+                            else -> TODO()
+                        }
+                    }
+                }
             }
-        }.let {
-            println(it)
-        }
+        cache.fetch(1)
+        cache.tagAsDeleted(1)
+        cache.fetch(1)
     }
 }

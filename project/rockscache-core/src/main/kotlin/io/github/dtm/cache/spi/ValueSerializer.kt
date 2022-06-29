@@ -1,6 +1,7 @@
 package io.github.dtm.cache.spi
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
@@ -17,7 +18,7 @@ interface ValueSerializer<T> {
          */
         @JvmStatic
         fun <T> jackson(type: Class<T>): ValueSerializer<T> =
-            jackson(type, ObjectMapper())
+            jackson(type, ObjectMapper().registerModule(JavaTimeModule()))
 
         /**
          * For java, not kotlin
@@ -42,6 +43,11 @@ interface ValueSerializer<T> {
             type: KClass<T>,
             mapper: ObjectMapper? = null
         ): ValueSerializer<T> =
-            jackson(type.java, mapper ?: jacksonObjectMapper())
+            jackson(
+                type.java,
+                mapper
+                    ?: jacksonObjectMapper()
+                        .registerModule(JavaTimeModule())
+            )
     }
 }
