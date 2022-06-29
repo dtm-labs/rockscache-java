@@ -15,7 +15,11 @@ interface CacheClient{
         keyType: KClass<K>,
         valueType: KClass<V>
     ): Cache<K, V> =
-        createCache(keyPrefix, keyType.java, valueType.java)
+        createCache(
+            keyPrefix,
+            Serializer.jackson(keyType),
+            Serializer.jackson(valueType)
+        )
 
     /**
      * For java, not kotlin

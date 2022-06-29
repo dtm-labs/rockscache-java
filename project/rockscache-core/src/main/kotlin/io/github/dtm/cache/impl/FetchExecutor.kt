@@ -19,6 +19,7 @@ internal class FetchExecutor<K, V>(
     private val keyMap: Map<K, String> =
         keys.associateBy({it}) { "$keyPrefix$it" }
 
+    @Suppress("UNCHECKED_CAST")
     fun execute(): Map<K, V> {
         val now = System.currentTimeMillis()
         val args = listOf(
@@ -26,11 +27,19 @@ internal class FetchExecutor<K, V>(
             (now + options.lockExpire.toMillis()).toString(),
             uuid.toString()
         )
-        provider.executeBatchScript {
+        val gettingResults = provider.executeBatchScript {
             for (redisKey in keyMap.values) {
                 append(LUA_GET, listOf(redisKey), args)
             }
+        }.map { result ->
+            if (result is Throwable) {
+                throw result;
+            }
+            (result as List<Any>).let {
+                it[0] to it[1]
+            }
         }
+        println(gettingResults)
         TODO()
     }
 
@@ -46,6 +55,6 @@ internal class FetchExecutor<K, V>(
             |    return { v, 'LOCKED' }
             |end
             |return {v, lu}
-            """.trimIndent()
+            """.trimMargin()
     }
 }

@@ -12,7 +12,11 @@ class JedisProvider(
         pool.resource.use { jedis ->
             jedis.pipelined().use { pipeline ->
                 val appender = object : LuaAppender {
-                    override fun append(lua: String, keys: List<String>, args: List<String>) {
+                    override fun append(
+                        lua: String,
+                        keys: List<String>,
+                        args: List<String>
+                    ) {
                         pipeline.eval(lua, keys, args)
                     }
                 }
