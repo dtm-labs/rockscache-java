@@ -44,7 +44,7 @@ internal class FetchExecutor<K, V>(
         val now = System.currentTimeMillis()
         val args = listOf(
             now.toString(),
-            (now + options.lockExpire.toMillis()).toString(),
+            (now + options.lockExpire.toSeconds()).toString(),
             uuid.toString()
         )
 
@@ -88,7 +88,7 @@ internal class FetchExecutor<K, V>(
                             options.emptyExpire
                         } else {
                             expire
-                        }.toMillis().toString()
+                        }.toSeconds().toString()
                     )
                 )
             }

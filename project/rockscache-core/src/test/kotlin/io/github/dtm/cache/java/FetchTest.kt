@@ -13,11 +13,11 @@ class FetchTest {
     fun test() {
         val cache = CacheClient
             .newBuilder()
-            .setKeyPrefix("test-scope-")
+            .setKeyPrefix("test-scope2-")
             .setProvider(JedisProvider(JedisPool("localhost", 6379)))
             .build()
             .createCache("int2str-", Int::class, String::class)
-        cache.fetch(1, Duration.ofMinutes(1)) {
+        cache.fetch(1, Duration.ofSeconds(10)) {
             println("LOAD------------------------------------------------")
             when (it) {
                 1 -> "One"
