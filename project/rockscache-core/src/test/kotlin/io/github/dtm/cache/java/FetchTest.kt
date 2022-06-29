@@ -6,17 +6,19 @@ import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.DirtyCacheException
 import io.github.dtm.cache.spi.JedisProvider
 import redis.clients.jedis.JedisPool
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.test.expect
+import kotlin.test.*
 
 class FetchTest {
 
     private val provider = JedisProvider(JedisPool("localhost", 6379))
 
+    private lateinit var cacheClient: CacheClient
+
     private lateinit var cache: Cache<Int, String>
 
     private lateinit var dbMap: MutableMap<Int, String>
+
+    private var dbReadCount = 0
 
     @BeforeTest
     @Suppress("UNCHECKED_CAST")
@@ -28,13 +30,15 @@ class FetchTest {
                 "test-scope-int-to-str-3"
             )
         )
-        cache = CacheClient
+        cacheClient = CacheClient
             .newBuilder()
             .setKeyPrefix("test-scope-")
             .setProvider(provider)
             .build()
+        cache = cacheClient
             .newCache("int-to-str-", Int::class, String::class) {
                 loader = { keys ->
+                    dbReadCount++
                     Thread.sleep(1000)
                     keys.associateBy({it}) {
                         dbMap[it]
@@ -46,24 +50,37 @@ class FetchTest {
             2 to "Two",
             3 to "Three"
         )
+        dbReadCount = 0
+    }
+
+    @AfterTest
+    fun uninit() {
+        cacheClient.close()
     }
 
     @Test
     fun testFetch() {
+        expect(0) { dbReadCount }
         expect("One") {cache.fetch(1) }
+        expect(1) { dbReadCount }
+        expect("One") {cache.fetch(1, Consistency.STRONG) }
+        expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
         Thread.sleep(100)
         for (i in 0..5) {
             expect("One") { cache.fetch(1) }
         }
+        expect(2) { dbReadCount }
         for (i in 0..5) {
             expect("ONE") { cache.fetch(1, Consistency.STRONG) }
         }
+        expect(2) { dbReadCount }
     }
 
     @Test
     fun testFetchAll() {
+        expect(0) { dbReadCount }
         expect(
             mapOf(
                 1 to "One",
@@ -71,6 +88,15 @@ class FetchTest {
                 3 to "Three"
             )
         ) { cache.fetchAll(listOf(1, 2, 3)) }
+        expect(1) { dbReadCount }
+        expect(
+            mapOf(
+                1 to "One",
+                2 to "Two",
+                3 to "Three"
+            )
+        ) { cache.fetchAll(listOf(1, 2, 3), Consistency.STRONG) }
+        expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         dbMap[2] = "TWO"
         dbMap[3] = "THREE"
@@ -87,6 +113,7 @@ class FetchTest {
                 )
             ) { cache.fetchAll(listOf(1, 2, 3)) }
         }
+        expect(2) { dbReadCount }
 
         for (i in 0..5) {
             expect(
@@ -97,14 +124,27 @@ class FetchTest {
                 )
             ) { cache.fetchAll(listOf(1, 2, 3), Consistency.STRONG) }
         }
+        expect(2) { dbReadCount }
     }
 
-    @Test(expected = DirtyCacheException::class)
+    @Test
     fun testAllowDirtyCacheException() {
-        expect("One") {cache.fetch(1) }
+        for (i in 0..5) {
+            expect("One") { cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) }
+        }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
         Thread.sleep(100)
-        cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION)
+//        for (i in 0..5) {
+            try {
+                cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION)
+                fail("Expects ${DirtyCacheException::class.qualifiedName}")
+            } catch (ignored: DirtyCacheException) {
+            }
+//        }
+
+        Thread.sleep(1100)
+        expect("ONE") {cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) }
+        expect(2) { dbReadCount }
     }
 }

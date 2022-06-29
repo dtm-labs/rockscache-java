@@ -7,7 +7,7 @@ import io.github.dtm.cache.spi.RedisProvider
 import io.github.dtm.cache.spi.ValueSerializer
 import kotlin.reflect.KClass
 
-interface CacheClient {
+interface CacheClient : AutoCloseable {
 
     /**
      * For kotlin, not java
@@ -72,6 +72,8 @@ interface CacheClient {
             (it as CacheBuilderImpl<K, V>).toDsl().block()
             it.build()
         }
+
+    override fun close()
 
     interface Builder {
 

@@ -36,6 +36,10 @@ internal class CacheClientImpl(
             valueSerializer
         )
 
+    override fun close() {
+        AsyncFetchService.close()
+    }
+
     internal class BuilderImpl : CacheClient.Builder {
 
         private var options: Options? = null
