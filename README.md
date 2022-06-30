@@ -1,4 +1,10 @@
 # rockscache-java
 A Redis Cache Library To Ensure Eventual Consistency And Strong Consistency With DB.
 
-# Developing... Will come soon! If you want to view unfinished submitted code, please goto branch initialization
+# DONE
+Main Code
+
+# Not DONE
+1. Spring wrapper
+2. Example
+3. Documentation
