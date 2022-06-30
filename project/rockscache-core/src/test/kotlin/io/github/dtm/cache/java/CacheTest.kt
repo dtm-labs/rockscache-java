@@ -134,21 +134,21 @@ class CacheTest {
     @Test
     fun testAllowDirtyCacheException() {
         for (i in 0..5) {
-            expect("One") { cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) }
+            expect("One") { cache.fetch(1, Consistency.TRY_STRONG) }
         }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
         Thread.sleep(100)
         for (i in 0..5) {
             try {
-                cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION)
+                cache.fetch(1, Consistency.TRY_STRONG)
                 fail("Expects ${DirtyCacheException::class.qualifiedName}")
             } catch (ignored: DirtyCacheException) {
             }
         }
 
         Thread.sleep(1100)
-        expect("ONE") {cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) }
+        expect("ONE") {cache.fetch(1, Consistency.TRY_STRONG) }
         expect(2) { dbReadCount }
     }
 

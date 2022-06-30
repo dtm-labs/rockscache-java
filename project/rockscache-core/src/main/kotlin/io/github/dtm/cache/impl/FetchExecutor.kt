@@ -105,7 +105,7 @@ internal class FetchExecutor<K, V>(
                 fetchNew(asyncLoadingKeys)
             }
         }
-        if (options.consistency == Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) {
+        if (options.consistency == Consistency.TRY_STRONG) {
             val dirtyKeys = map.filterValues { it.first !== null && it.second !== null }.keys
             if (dirtyKeys.isNotEmpty()) {
                 client.asyncFetchService.add {
