@@ -161,7 +161,7 @@ class CacheTest {
         for (i in 1..threadCount) {
             Thread.sleep(10)
             executorService.execute {
-                cache.tryLock(listOf(1, 2), Duration.ofSeconds(4))?.execute {
+                cache.tryLock(listOf(1, 2), Duration.ofSeconds(4), Duration.ofSeconds(3))?.execute {
                     logLock.withLock { logs += "enter-$i" }
                     Thread.sleep(1000)
                     logLock.withLock { logs += "leave-$i" }

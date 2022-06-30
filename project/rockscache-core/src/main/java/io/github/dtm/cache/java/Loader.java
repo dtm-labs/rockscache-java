@@ -3,6 +3,9 @@ package io.github.dtm.cache.java;
 import java.util.Collection;
 import java.util.Map;
 
+/**
+ * @author 陈涛
+ */
 @FunctionalInterface
 public interface Loader<K, V> {
 

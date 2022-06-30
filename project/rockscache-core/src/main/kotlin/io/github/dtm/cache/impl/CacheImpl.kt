@@ -89,7 +89,7 @@ internal class CacheImpl<K, V>(
         }
     }
 
-    override fun tryLock(keys: Collection<K>, duration: Duration): LockScope? {
+    override fun tryLock(keys: Collection<K>, waitTimeout: Duration, leaseTimeout: Duration): LockScope? {
         if (keys.size > options.batchSize) {
             throw IllegalArgumentException(
                 "keys.size() is ${keys.size}, it is greater than batchSize ${options.batchSize}"
@@ -101,7 +101,7 @@ internal class CacheImpl<K, V>(
             keys.map { "${keyPrefix}${keySerializer.serialize(it)}" }.toSet(),
             UUID.randomUUID().toString()
         )
-        return if (scope.tryLock(duration)) {
+        return if (scope.tryLock(waitTimeout, leaseTimeout)) {
             scope
         } else {
             null

@@ -2,9 +2,7 @@ package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.LockScope
 import io.github.dtm.cache.Options
-import java.lang.IllegalStateException
 import java.time.Duration
-import java.util.*
 
 /**
  * @author 陈涛
@@ -18,24 +16,28 @@ internal class LockScopeImpl(
 
     private val redisKeys: List<String> = redisKeys.toList()
 
-    fun tryLock(duration: Duration): Boolean {
-        val nowMillis = System.currentTimeMillis()
-        val maxMillis = nowMillis + duration.toMillis()
+    fun tryLock(waitTimeout: Duration, leaseTimeout: Duration): Boolean {
+        if (leaseTimeout < Duration.ofSeconds(1)) {
+            throw IllegalArgumentException("leaseTime cannot be shorter than 1 second")
+        }
+        val maxWaitMillis = System.currentTimeMillis() + waitTimeout.toMillis()
         while (true) {
+            val nowMillis = System.currentTimeMillis()
+            val untilMillis = nowMillis + leaseTimeout.toMillis()
             val result = client.provider.eval(
                 LUA_LOCK,
                 redisKeys,
                 listOf(
                     owner,
                     nowMillis.toString(),
-                    maxMillis.toString(),
-                    options.lockExpire.seconds.toString()
+                    untilMillis.toString(),
+                    leaseTimeout.seconds.toString()
                 )
             )
             if (result == "LOCKED") {
                 return true
             }
-            if (System.currentTimeMillis() >= maxMillis) {
+            if (System.currentTimeMillis() >= maxWaitMillis) {
                 return false
             }
             Thread.sleep(options.lockSleep.toMillis())
