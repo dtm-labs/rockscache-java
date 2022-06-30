@@ -3,6 +3,9 @@ package io.github.dtm.cache
 import io.github.dtm.cache.java.Loader
 import java.time.Duration
 
+/**
+ * @author 陈涛
+ */
 interface CacheBuilder<K, V> {
 
     /**

@@ -2,6 +2,9 @@ package io.github.dtm.cache
 
 import java.time.Duration
 
+/**
+ * @author 陈涛
+ */
 interface Cache<K, V> {
 
     fun toCache(consistency: Consistency): Cache<K, V>

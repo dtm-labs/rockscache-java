@@ -1,5 +1,8 @@
 package io.github.dtm.cache
 
+/**
+ * @author 陈涛
+ */
 interface LockScope {
 
     fun unlock()

@@ -4,6 +4,9 @@ import io.github.dtm.cache.Options
 import io.github.dtm.cache.spi.RedisProvider
 import java.lang.IllegalStateException
 
+/**
+ * @author 陈涛
+ */
 internal class TagAsDeleteExecutor(
     private val options: Options,
     private val provider: RedisProvider,

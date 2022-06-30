@@ -6,6 +6,9 @@ import java.lang.IllegalStateException
 import java.time.Duration
 import java.util.*
 
+/**
+ * @author 陈涛
+ */
 internal class LockScopeImpl(
     private val client: CacheClientImpl,
     private val options: Options,

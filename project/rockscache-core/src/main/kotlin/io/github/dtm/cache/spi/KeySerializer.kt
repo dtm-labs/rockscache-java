@@ -5,6 +5,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import kotlin.reflect.KClass
 
+/**
+ * @author 陈涛
+ */
 interface KeySerializer<T> {
     
     fun serialize(key: T): String

@@ -1,6 +1,9 @@
 @file:JvmName("Utils")
 package io.github.dtm.cache.impl
 
+/**
+ * @author 陈涛
+ */
 fun <E> split(set: Set<E>, batchSize: Int, handler: (List<E>) -> Unit) {
     if (set.size < batchSize) {
         handler(set.toList())

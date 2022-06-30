@@ -7,6 +7,9 @@ import io.github.dtm.cache.spi.RedisProvider
 import io.github.dtm.cache.spi.ValueSerializer
 import kotlin.reflect.KClass
 
+/**
+ * @author 陈涛
+ */
 interface CacheClient : AutoCloseable {
 
     /**

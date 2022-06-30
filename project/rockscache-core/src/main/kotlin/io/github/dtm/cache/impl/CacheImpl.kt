@@ -11,6 +11,9 @@ import java.lang.IllegalStateException
 import java.time.Duration
 import java.util.*
 
+/**
+ * @author 陈涛
+ */
 internal class CacheImpl<K, V>(
     private val client: CacheClientImpl,
     private val keyPrefix: String,
