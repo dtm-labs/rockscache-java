@@ -9,10 +9,12 @@ import io.github.dtm.cache.spi.ValueSerializer
 import java.time.Duration
 
 internal class CacheClientImpl(
+    val provider: RedisProvider,
     private val options: Options,
-    private val provider: RedisProvider,
     private val keyPrefix: String
 ) : CacheClient {
+
+    val asyncFetchService = AsyncFetchService()
 
     init {
         if (options.delay == Duration.ZERO || options.lockExpire == Duration.ZERO) {
@@ -29,15 +31,15 @@ internal class CacheClientImpl(
         valueSerializer: ValueSerializer<V>
     ): CacheBuilder<K, V> =
         CacheBuilderImpl(
+            this,
             "${this.keyPrefix}$keyPrefix",
             options,
-            provider,
             keySerializer,
             valueSerializer
         )
 
     override fun close() {
-        AsyncFetchService.close()
+        asyncFetchService.close()
     }
 
     internal class BuilderImpl : CacheClient.Builder {
@@ -65,8 +67,8 @@ internal class CacheClientImpl(
 
         override fun build(): CacheClient =
             CacheClientImpl(
-                options ?: Options(),
                 provider ?: error("Provider is not specified"),
+                options ?: Options(),
                 keyPrefix ?: ""
             )
     }

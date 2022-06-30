@@ -7,9 +7,9 @@ import kotlin.reflect.KClass
 
 interface ValueSerializer<T> {
 
-    fun serialize(value: T): ByteArray
+    fun serialize(value: T): String
 
-    fun deserialize(bytes: ByteArray): T
+    fun deserialize(bytes: String): T
 
     companion object {
 
@@ -27,11 +27,11 @@ interface ValueSerializer<T> {
         fun <T> jackson(type: Class<T>, mapper: ObjectMapper): ValueSerializer<T> {
             return object : ValueSerializer<T> {
 
-                override fun serialize(value: T): ByteArray =
-                    mapper.writeValueAsBytes(value)
+                override fun serialize(value: T): String =
+                    mapper.writeValueAsString(value)
 
-                override fun deserialize(bytes: ByteArray): T =
-                    mapper.readValue(bytes, type)
+                override fun deserialize(content: String): T =
+                    mapper.readValue(content, type)
             }
         }
 

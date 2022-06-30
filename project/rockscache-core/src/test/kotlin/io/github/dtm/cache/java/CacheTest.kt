@@ -6,9 +6,13 @@ import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.DirtyCacheException
 import io.github.dtm.cache.spi.JedisProvider
 import redis.clients.jedis.JedisPool
+import java.time.Duration
+import java.util.concurrent.Executors
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 import kotlin.test.*
 
-class FetchTest {
+class CacheTest {
 
     private val provider = JedisProvider(JedisPool("localhost", 6379))
 
@@ -87,7 +91,7 @@ class FetchTest {
                 2 to "Two",
                 3 to "Three"
             )
-        ) { cache.fetchAll(listOf(1, 2, 3)) }
+        ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
         expect(1) { dbReadCount }
         expect(
             mapOf(
@@ -95,12 +99,12 @@ class FetchTest {
                 2 to "Two",
                 3 to "Three"
             )
-        ) { cache.fetchAll(listOf(1, 2, 3), Consistency.STRONG) }
+        ) { cache.fetchAll(listOf(1, 2, 3, 4), Consistency.STRONG) }
         expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         dbMap[2] = "TWO"
         dbMap[3] = "THREE"
-        cache.tagAllAsDeleted(listOf(1, 2, 3))
+        cache.tagAllAsDeleted(listOf(1, 2, 3, 4))
 
         Thread.sleep(100)
 
@@ -111,7 +115,7 @@ class FetchTest {
                     2 to "Two",
                     3 to "Three"
                 )
-            ) { cache.fetchAll(listOf(1, 2, 3)) }
+            ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
         }
         expect(2) { dbReadCount }
 
@@ -122,7 +126,7 @@ class FetchTest {
                     2 to "TWO",
                     3 to "THREE"
                 )
-            ) { cache.fetchAll(listOf(1, 2, 3), Consistency.STRONG) }
+            ) { cache.fetchAll(listOf(1, 2, 3, 4), Consistency.STRONG) }
         }
         expect(2) { dbReadCount }
     }
@@ -135,16 +139,38 @@ class FetchTest {
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
         Thread.sleep(100)
-//        for (i in 0..5) {
+        for (i in 0..5) {
             try {
                 cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION)
                 fail("Expects ${DirtyCacheException::class.qualifiedName}")
             } catch (ignored: DirtyCacheException) {
             }
-//        }
+        }
 
         Thread.sleep(1100)
         expect("ONE") {cache.fetch(1, Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) }
         expect(2) { dbReadCount }
+    }
+
+    @Test
+    fun testLockForUpdate() {
+        val threadCount = 3
+        val logs = mutableListOf<String>()
+        val logLock = ReentrantLock()
+        val executorService = Executors.newFixedThreadPool(threadCount)
+        for (i in 1..threadCount) {
+            Thread.sleep(10)
+            executorService.execute {
+                cache.tryLock(listOf(1, 2), Duration.ofSeconds(4))?.execute {
+                    logLock.withLock { logs += "enter-$i" }
+                    Thread.sleep(1000)
+                    logLock.withLock { logs += "leave-$i" }
+                }
+            }
+        }
+        Thread.sleep(3500)
+        expect("[enter-1, leave-1, enter-2, leave-2, enter-3, leave-3]") {
+            logs.toString()
+        }
     }
 }

@@ -1,5 +1,7 @@
 package io.github.dtm.cache
 
+import java.time.Duration
+
 interface Cache<K, V> {
 
     fun toCache(consistency: Consistency): Cache<K, V>
@@ -19,4 +21,9 @@ interface Cache<K, V> {
     }
 
     fun tagAllAsDeleted(keys: Collection<K>)
+
+    fun tryLock(key: K, duration: Duration): LockScope? =
+        tryLock(setOf(key), duration)
+
+    fun tryLock(keys: Collection<K>, duration: Duration): LockScope?
 }

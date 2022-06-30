@@ -4,23 +4,11 @@ import redis.clients.jedis.JedisPool
 
 class JedisProvider(
     private val pool: JedisPool
-) : AbstractRedisProvider() {
+) : RedisProvider {
 
-    override fun executeLuaCommand(command: LuaCommand): Any? =
+    override fun eval(lua: String, keys: List<String>, args: List<String>): Any? =
         pool.resource.use { jedis ->
-            jedis.eval(command.lua, command.keys, command.args)
-        }
-
-    override fun executeLuaCommands(
-        commands: Collection<LuaCommand>
-    ): List<Any?> =
-        pool.resource.use { jedis ->
-            jedis.pipelined().use { pipeline ->
-                for (command in commands) {
-                    pipeline.eval(command.lua, command.keys, command.args)
-                }
-                pipeline.syncAndReturnAll()
-            }
+            jedis.eval(lua, keys, args)
         }
 
     override fun delete(keys: Collection<String>) {

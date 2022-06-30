@@ -7,15 +7,11 @@ import java.lang.IllegalStateException
 internal class TagAsDeleteExecutor(
     private val options: Options,
     private val provider: RedisProvider,
-    private val redisKeys: Collection<String>
+    private val redisKeys: List<String>
 ) {
     fun execute() {
         val args = listOf(options.delay.seconds.toString())
-        provider.eval {
-            for (redisKey in redisKeys) {
-                append(LUA_TAG_AS_DELETE, listOf(redisKey), args)
-            }
-        }
+        provider.eval(LUA_TAG_AS_DELETE, redisKeys, args)
         if (options.waitReplicas > 0) {
             val replicas = provider.waitReplicas(
                 options.waitReplicas,
@@ -33,10 +29,13 @@ internal class TagAsDeleteExecutor(
 
         @JvmStatic
         private val LUA_TAG_AS_DELETE =
-            """--lua tagAsDelete
-		    |redis.call('HSET', KEYS[1], 'lockUntil', 0) 
-		    |redis.call('HDEL', KEYS[1], 'lockOwner') 
-		    |redis.call('EXPIRE', KEYS[1], ARGV[1]) 
+            """
+                | --lua tagAsDelete
+		        | for index, key in ipairs(KEYS) do
+                |     redis.call('HSET', key, 'lockUntil', 0) 
+                |     redis.call('HDEL', key, 'lockOwner') 
+                |     redis.call('EXPIRE', key, ARGV[1])
+                | end
             """.trimMargin()
     }
 }

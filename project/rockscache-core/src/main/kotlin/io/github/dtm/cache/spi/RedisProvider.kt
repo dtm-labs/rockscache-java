@@ -2,9 +2,7 @@ package io.github.dtm.cache.spi
 
 interface RedisProvider {
 
-    fun eval(
-        block: LuaAppender.() -> Unit
-    ): List<Any?>
+    fun eval(lua: String, keys: List<String>, args: List<String>): Any?
 
     fun delete(keys: Collection<String>)
 

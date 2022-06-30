@@ -4,26 +4,25 @@ import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.DirtyCacheException
 import io.github.dtm.cache.Options
 import io.github.dtm.cache.spi.KeySerializer
-import io.github.dtm.cache.spi.RedisProvider
 import io.github.dtm.cache.spi.ValueSerializer
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.*
 
 internal class FetchExecutor<K, V>(
+    private val client: CacheClientImpl,
     private val keyPrefix: String,
     private val options: Options,
-    private val provider: RedisProvider,
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>,
     private val expire: Duration,
     private val loader: (Collection<K>) -> Map<K, V>,
     keys: Collection<K>
 ) {
-    private val uuid = UUID.randomUUID()
+    private val owner = UUID.randomUUID().toString()
 
     private val keyMap: Map<String, K> =
-        keys.associateBy({"$keyPrefix$it"}) { it }
+        keys.associateBy({"$keyPrefix${keySerializer.serialize(it)}"}) { it }
 
     private val redisKeyMap: Map<K, String> =
         keyMap.entries.associateBy({it.value}) {
@@ -45,54 +44,39 @@ internal class FetchExecutor<K, V>(
         val args = listOf(
             now.toString(),
             (now + options.lockExpire.toMillis()).toString(),
-            uuid.toString()
+            owner
         )
 
-        val rows = provider.eval {
-            for (redisKey in redisKeyList) {
-                if (LOGGER.isDebugEnabled) {
-                    LOGGER.debug("luaGet: redisKey: $redisKey, args: $args")
-                }
-                append(LUA_GET, listOf(redisKey), args)
-            }
+        val list = client.provider.eval(
+            LUA_GET,
+            redisKeyList,
+            args
+        ) as List<Any?>
+        val map = mutableMapOf<String, Pair<Any?, Any?>>()
+        for (i in redisKeyList.indices) {
+            val key = redisKeyList[i]
+            val value = list[2 * i]
+            val status = list[2 * i + 1] as String?
+            map[key] = value to status
         }
-
-        return redisKeyList.indices.associateByTo(
-            mutableMapOf(),
-            {redisKeyList[it]},
-            { index ->
-                val row = rows[index]
-                if (row is Throwable) {
-                    LOGGER.error(
-                        "Failed to read redis: redisKey:${redisKeyList[index]}"
-                    )
-                    throw row
-                }
-                (row as List<Any?>).let {
-                    it[0] to it[1]
-                }
-            }
-        )
+        return map
     }
 
-    private fun luaSet(map: Map<String, V>) {
-        provider.eval {
-            for ((key, value) in map) {
-                append(
-                    LUA_SET,
-                    listOf(key),
-                    listOf(
-                        value.toString(),
-                        uuid.toString(),
-                        if (value == null) {
-                            options.emptyExpire
-                        } else {
-                            expire
-                        }.toSeconds().toString()
-                    )
-                )
+    private fun luaSet(map: Map<String, V?>) {
+        val args = mutableListOf(owner)
+        for (value in map.values) {
+            args += if (value === null) {
+                options.emptyExpire
+            } else {
+                expire
+            }.toSeconds().toString()
+            args += if (value === null) {
+                ""
+            } else {
+                valueSerializer.serialize(value)
             }
         }
+        client.provider.eval(LUA_SET, map.keys.toList(), args)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -101,32 +85,38 @@ internal class FetchExecutor<K, V>(
         val map = luaGet(keyMap.keys)
 
         while (true) {
-            val missedKeys = map.filterValues { it.first === null && it.second != null && it.second != LOCKED }.keys
-            if (missedKeys.isEmpty()) {
+            val lockedByOtherKeys = map.filterValues { it.first === null && it.second != null && it.second != LOCKED }.keys
+            if (lockedByOtherKeys.isEmpty()) {
                 break
             }
             if (LOGGER.isDebugEnabled) {
                 LOGGER.debug(
-                    "empty result for $missedKeys locked by other, so sleep ${options.lockSleep.toMillis()}ms"
+                    "empty result for $lockedByOtherKeys locked by other, so sleep ${options.lockSleep.toMillis()}ms"
                 )
             }
             Thread.sleep(options.lockSleep.toMillis())
-            map += luaGet(missedKeys)
+            map += luaGet(lockedByOtherKeys)
         }
 
+        val syncLoadingKeys = map.filterValues { it.first === null && it.second == LOCKED }.keys
         val asyncLoadingKeys = map.filterValues { it.first !== null && it.second == LOCKED }.keys
         if (asyncLoadingKeys.isNotEmpty()) {
-            AsyncFetchService.add {
+            client.asyncFetchService.add {
                 fetchNew(asyncLoadingKeys)
             }
-            if (options.consistency == Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) {
+        }
+        if (options.consistency == Consistency.ALLOW_DIRTY_CACHE_EXCEPTION) {
+            val dirtyKeys = map.filterValues { it.first !== null && it.second !== null }.keys
+            if (dirtyKeys.isNotEmpty()) {
+                client.asyncFetchService.add {
+                    fetchNew(syncLoadingKeys)
+                }
                 throw DirtyCacheException(
-                    "There are some dirty data in cache: $asyncLoadingKeys",
-                    asyncLoadingKeys
+                    "There are some dirty data in cache: $dirtyKeys",
+                    dirtyKeys
                 )
             }
         }
-        val syncLoadingKeys = map.filterValues { it.first === null && it.second == LOCKED }.keys
         return fetchMore(map, syncLoadingKeys)
     }
 
@@ -137,25 +127,22 @@ internal class FetchExecutor<K, V>(
         }
 
         val map = luaGet(keyMap.keys)
-        println("initialized map: $map")
 
         while (true) {
-            val missedKeys = map.filterValues { it.first !== null && it.second != null && it.second != LOCKED }.keys
-            if (missedKeys.isEmpty()) {
+            val lockedByOtherKeys = map.filterValues { it.first !== null && it.second != null && it.second != LOCKED }.keys
+            if (lockedByOtherKeys.isEmpty()) {
                 break
             }
             if (LOGGER.isDebugEnabled) {
                 LOGGER.debug(
-                    "$missedKeys are locked by other, so sleep ${options.lockSleep.toMillis()}ms"
+                    "$lockedByOtherKeys are locked by other, so sleep ${options.lockSleep.toMillis()}ms"
                 )
             }
             Thread.sleep(options.lockSleep.toMillis())
-            map += luaGet(missedKeys)
-            println("map after sleep: $map")
+            map += luaGet(lockedByOtherKeys)
         }
 
         val lockedKeys = map.filterValues { it.second == LOCKED }.keys
-        println("lockedKeys: $lockedKeys")
         return fetchMore(map, lockedKeys)
     }
 
@@ -164,18 +151,30 @@ internal class FetchExecutor<K, V>(
         alreadyMap: Map<String, Pair<Any?, Any?>>,
         missedKeys: Collection<String>
     ): Map<K, V> {
-        val resultMap = alreadyMap.entries.associateBy({
-            keyMap[it.key] as K
-        }) {
-            it.value.first as V
+        val resultMap = mutableMapOf<K, V>()
+        for ((redisKey, tuple) in alreadyMap) {
+            val key = keyMap[redisKey]!!
+            val value = tuple.first
+            if (value != null && value != "") {
+                resultMap[key] = valueSerializer.deserialize(value as String)
+            }
         }
         if (missedKeys.isEmpty()) {
             return resultMap
         }
-        return resultMap + fetchNew(missedKeys)
+        val loadedMap = fetchNew(missedKeys)
+        for ((key, value) in loadedMap) {
+            if (value != null) {
+                resultMap[key] = value
+            }
+        }
+        return resultMap
     }
 
-    private fun fetchNew(missedRedisKeys: Collection<String>): Map<K, V> {
+    private fun fetchNew(missedRedisKeys: Collection<String>): Map<K, V?> {
+        if (missedRedisKeys.isEmpty()) {
+            return emptyMap()
+        }
         val missedKeys = missedRedisKeys.map { keyMap[it]!! }
         if (LOGGER.isInfoEnabled) {
             LOGGER.info("Loading from database: $missedRedisKeys")
@@ -187,12 +186,16 @@ internal class FetchExecutor<K, V>(
         if (options.emptyExpire == Duration.ZERO) {
             val nullKeys = missedRedisKeys - loadedMap.keys.map { redisKeyMap[it]!! }.toSet()
             if (nullKeys.isNotEmpty()) {
-                provider.delete(nullKeys)
+                client.provider.delete(nullKeys)
             }
         }
-        val writeMap = missedRedisKeys.associateBy({it}) {
-            val key = keyMap[it]!!
-            loadedMap[key]!!
+        val writeMap = mutableMapOf<String, V?>()
+        for (missedRedisKey in missedRedisKeys) {
+            val key = keyMap[missedRedisKey]
+            val value = loadedMap[key]
+            if (value != null || options.emptyExpire != Duration.ZERO) {
+                writeMap[missedRedisKey] = value
+            }
         }
         luaSet(writeMap)
         return loadedMap
@@ -207,26 +210,36 @@ internal class FetchExecutor<K, V>(
 
         @JvmStatic
         private val LUA_GET = """-- luaGet
-            |local v = redis.call('HGET', KEYS[1], 'value')
-	        |local lu = redis.call('HGET', KEYS[1], 'lockUntil')
-	        |if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
-		    |   redis.call('HSET', KEYS[1], 'lockUntil', ARGV[2])
-		    |   redis.call('HSET', KEYS[1], 'lockOwner', ARGV[3])
-		    |   return { v, '$LOCKED' }
-	        |end
-	        |return {v, lu}
+            |local list = {}
+            |for index, key in ipairs(KEYS) do
+            |    local v = redis.call('HGET', key, 'value')
+	        |    local lu = redis.call('HGET', key, 'lockUntil')
+            |    list[index * 2 - 1] = v
+	        |    if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
+		    |        redis.call('HSET', key, 'lockUntil', ARGV[2])
+		    |        redis.call('HSET', key, 'lockOwner', ARGV[3])
+		    |        list[2 * index] = 'LOCKED'
+            |    else
+            |        list[2 * index] = lu
+	        |    end
+            |end
+	        |return list
         """.trimMargin()
 
+        // Args: LockOwner, (Expire, Value)*
         @JvmStatic
         private val LUA_SET = """-- luaSet
-            |local o = redis.call('HGET', KEYS[1], 'lockOwner')
-            |if o ~= ARGV[2] then
-            |    return
+            |for index, key in ipairs(KEYS) do
+            |    local o = redis.call('HGET', key, 'lockOwner')
+            |    if o == ARGV[1] then
+            |        local expire = ARGV[index * 2]
+            |        local value = ARGV[index * 2 + 1]
+            |        redis.call('EXPIRE', key, expire)
+            |        redis.call('HDEL', key, 'lockOwner')
+            |        redis.call('HDEL', key, 'lockUntil')
+            |        redis.call('HSET', key, 'value', value)
+            |    end
             |end
-            |redis.call('HSET', KEYS[1], 'value', ARGV[1])
-            |redis.call('HDEL', KEYS[1], 'lockUntil')
-            |redis.call('HDEL', KEYS[1], 'lockOwner')
-            |redis.call('EXPIRE', KEYS[1], ARGV[3])
         """.trimMargin()
     }
 }

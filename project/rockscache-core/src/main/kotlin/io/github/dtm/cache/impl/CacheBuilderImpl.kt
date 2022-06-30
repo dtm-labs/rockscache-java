@@ -8,9 +8,9 @@ import io.github.dtm.cache.spi.ValueSerializer
 import java.time.Duration
 
 internal class CacheBuilderImpl<K, V>(
+    private val client: CacheClientImpl,
     private val keyPrefix: String,
     private val options: Options,
-    private val provider: RedisProvider,
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>
 ): CacheBuilder<K, V> {
@@ -46,14 +46,14 @@ internal class CacheBuilderImpl<K, V>(
 
     override fun build(): Cache<K, V> =
         CacheImpl(
+            client = client,
             keyPrefix = keyPrefix,
             options = consistency
                 ?.let { options.copy(consistency = it) }
                 ?: options,
-            provider = provider,
             keySerializer = keySerializer,
             valueSerializer = valueSerializer,
-            expire = expire ?: Duration.ofSeconds(60),
+            expire = expire ?: Duration.ofMinutes(5),
             loader = loader ?: error("loader of cache is missing")
         )
 

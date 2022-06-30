@@ -2,7 +2,7 @@ package io.github.dtm.cache.impl
 
 import java.util.concurrent.Executors
 
-internal object AsyncFetchService {
+internal class AsyncFetchService {
 
     @Volatile
     private var closed = false
