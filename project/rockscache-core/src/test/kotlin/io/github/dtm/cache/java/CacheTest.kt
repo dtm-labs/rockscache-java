@@ -31,7 +31,8 @@ class CacheTest {
             listOf(
                 "test-scope-int-to-str-1",
                 "test-scope-int-to-str-2",
-                "test-scope-int-to-str-3"
+                "test-scope-int-to-str-3",
+                "test-scope-int-to-str-4"
             )
         )
         cacheClient = CacheClient
@@ -161,7 +162,7 @@ class CacheTest {
         for (i in 1..threadCount) {
             Thread.sleep(10)
             executorService.execute {
-                cache.tryLockAll(listOf(1, 2), Duration.ofSeconds(4), Duration.ofSeconds(6))?.execute {
+                cache.tryLockAll(listOf(1, 2, 4), Duration.ofSeconds(4), Duration.ofSeconds(6))?.execute {
                     logLock.withLock { logs += "enter-$i" }
                     Thread.sleep(2000)
                     logLock.withLock { logs += "leave-$i" }

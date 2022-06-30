@@ -25,7 +25,7 @@ public class OptionsBuilder {
     
     private Duration waitReplicasTimeout = Constants.DEFAULT_WAIT_REPLICAS_TIMEOUT;
     
-    private float randomExpireAdjustment = Constants.DEFAULT_RANDOM_EXPIRE_ADJUSTMENT;
+    // private float randomExpireAdjustment = Constants.DEFAULT_RANDOM_EXPIRE_ADJUSTMENT;
     
     private boolean disableCacheRead = Constants.DEFAULT_DISABLE_CACHE_READ;
     
@@ -90,16 +90,16 @@ public class OptionsBuilder {
         return this;
     }
 
-    /**
-     * RandomExpireAdjustment is the random adjustment for the expire time. default 0.1
-     * if the expire time is set to 600s, and this value is set to 0.1, then the actual expire time will be 540s - 600s
-     * solve the problem of cache avalanche.
-     */
-    @NotNull
-    public OptionsBuilder setRandomExpireAdjustment(float randomExpireAdjustment) {
-        this.randomExpireAdjustment = randomExpireAdjustment;
-        return this;
-    }
+//    /**
+//     * RandomExpireAdjustment is the random adjustment for the expire time. default 0.1
+//     * if the expire time is set to 600s, and this value is set to 0.1, then the actual expire time will be 540s - 600s
+//     * solve the problem of cache avalanche.
+//     */
+//    @NotNull
+//    public OptionsBuilder setRandomExpireAdjustment(float randomExpireAdjustment) {
+//        this.randomExpireAdjustment = randomExpireAdjustment;
+//        return this;
+//    }
 
     /**
      * Set the flag to disable read cache. default is false
@@ -174,7 +174,6 @@ public class OptionsBuilder {
                 lockSleep,
                 waitReplicas,
                 waitReplicasTimeout,
-                randomExpireAdjustment,
                 disableCacheRead,
                 disableCacheDelete,
                 consistency,

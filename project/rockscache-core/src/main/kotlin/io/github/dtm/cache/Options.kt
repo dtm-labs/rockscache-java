@@ -39,12 +39,12 @@ data class Options(
      */
     val waitReplicasTimeout: Duration = DEFAULT_WAIT_REPLICAS_TIMEOUT,
 
-    /**
-     * RandomExpireAdjustment is the random adjustment for the expire time. default 0.1
-     * if the expire time is set to 600s, and this value is set to 0.1, then the actual expire time will be 540s - 600s
-     * solve the problem of cache avalanche.
-     */
-    val getRandomExpireAdjustment: Float = DEFAULT_RANDOM_EXPIRE_ADJUSTMENT,
+//    /**
+//     * RandomExpireAdjustment is the random adjustment for the expire time. default 0.1
+//     * if the expire time is set to 600s, and this value is set to 0.1, then the actual expire time will be 540s - 600s
+//     * solve the problem of cache avalanche.
+//     */
+//    val randomExpireAdjustment: Float = DEFAULT_RANDOM_EXPIRE_ADJUSTMENT,
 
     /**
      * Get the flag to disable read cache. default is false

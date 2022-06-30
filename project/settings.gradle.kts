@@ -1,4 +1,3 @@
 rootProject.name = "rockscache-java"
-include("core")
 include("rockscache-core")
-
+include("rockscache-spring-boot")

@@ -1,0 +1,2 @@
+# For spring-boot(version >= 2.7)
+io.github.dtm.cache.spring.RocksCacheConfiguration
