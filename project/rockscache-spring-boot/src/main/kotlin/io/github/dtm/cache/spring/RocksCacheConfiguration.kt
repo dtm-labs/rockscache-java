@@ -13,6 +13,7 @@ import java.time.Duration
 @Configuration
 open class RocksCacheConfiguration {
 
+    @ConditionalOnMissingBean(Options::class)
     @Bean
     open fun options(
         @Value("rockscache.delay") delay: Duration?,
