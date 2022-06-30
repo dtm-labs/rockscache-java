@@ -89,7 +89,7 @@ internal class CacheImpl<K, V>(
         }
     }
 
-    override fun tryLock(keys: Collection<K>, waitTimeout: Duration, leaseTimeout: Duration): LockScope? {
+    override fun tryLockAll(keys: Collection<K>, waitTimeout: Duration, leaseTimeout: Duration): LockScope? {
         if (keys.size > options.batchSize) {
             throw IllegalArgumentException(
                 "keys.size() is ${keys.size}, it is greater than batchSize ${options.batchSize}"
