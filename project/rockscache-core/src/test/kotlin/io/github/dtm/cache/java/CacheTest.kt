@@ -161,14 +161,14 @@ class CacheTest {
         for (i in 1..threadCount) {
             Thread.sleep(10)
             executorService.execute {
-                cache.tryLockAll(listOf(1, 2), Duration.ofSeconds(4), Duration.ofSeconds(3))?.execute {
+                cache.tryLockAll(listOf(1, 2), Duration.ofSeconds(4), Duration.ofSeconds(6))?.execute {
                     logLock.withLock { logs += "enter-$i" }
-                    Thread.sleep(1000)
+                    Thread.sleep(2000)
                     logLock.withLock { logs += "leave-$i" }
                 }
             }
         }
-        Thread.sleep(3500)
+        Thread.sleep(6500)
         expect("[enter-1, leave-1, enter-2, leave-2, enter-3, leave-3]") {
             logs.toString()
         }
