@@ -1,13 +1,12 @@
 package io.github.dtm.cache.spring
 
 import io.github.dtm.cache.*
-import io.github.dtm.cache.spi.JedisProvider
 import io.github.dtm.cache.spi.RedisProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import redis.clients.jedis.JedisPool
+import org.springframework.data.redis.connection.RedisConnectionFactory
 import java.time.Duration
 
 @Configuration
@@ -16,16 +15,20 @@ open class RocksCacheConfiguration {
     @ConditionalOnMissingBean(Options::class)
     @Bean
     open fun options(
-        @Value("rockscache.delay") delay: Duration?,
-        @Value("rockscache.emptyExpire") emptyExpire: Duration?,
-        @Value("rockscache.lockExpire") lockExpire: Duration?,
-        @Value("rockscache.lockSleep") lockSleep: Duration?,
-        @Value("rockscache.waitReplicas") waitReplicas: Int?,
-        @Value("rockscache.waitReplicasTimeout") waitReplicasTimeout: Duration?,
-        @Value("rockscache.isDisableCacheRead") isDisableCacheRead: Boolean?,
-        @Value("rockscache.isDisableCacheDelete") isDisableCacheDelete: Boolean?,
-        @Value("rockscache.consistency") consistency: Consistency?,
-        @Value("rockscache.batchSize") batchSize: Int?
+        // Why use @Value one by one here?, why don't use @ConfigurationProperties?
+        //
+        // Beacuse I met problem, please view
+        // https://stackoverflow.com/questions/72816139/how-to-do-implement-immutable-spring-properties-without-constructorbinding
+        @Value("\${rockscache.delay:#{null}}") delay: Duration?,
+        @Value("\${rockscache.emptyExpire:#{null}}") emptyExpire: Duration?,
+        @Value("\${rockscache.lockExpire:#{null}}") lockExpire: Duration?,
+        @Value("\${rockscache.lockSleep:#{null}}") lockSleep: Duration?,
+        @Value("\${rockscache.waitReplicas:#{null}}") waitReplicas: Int?,
+        @Value("\${rockscache.waitReplicasTimeout:#{null}}") waitReplicasTimeout: Duration?,
+        @Value("\${rockscache.isDisableCacheRead:#{null}}") isDisableCacheRead: Boolean?,
+        @Value("\${rockscache.isDisableCacheDelete:#{null}}") isDisableCacheDelete: Boolean?,
+        @Value("\${rockscache.consistency:#{null}}") consistency: Consistency?,
+        @Value("\${rockscache.batchSize:#{null}}") batchSize: Int?
     ): Options =
         Options(
             delay = delay ?: DEFAULT_DELAY,
@@ -42,13 +45,13 @@ open class RocksCacheConfiguration {
 
     @ConditionalOnMissingBean(RedisProvider::class)
     @Bean
-    open fun redisProvider(pool: JedisPool): RedisProvider =
-        JedisProvider(pool)
+    open fun redisProvider(connectionFactory: RedisConnectionFactory): RedisProvider =
+        SpringRedisProvider(connectionFactory)
 
     @ConditionalOnMissingBean(CacheClient::class)
     @Bean
     open fun cacheClient(
-        @Value("rockscache.globalKeyPrefix") globalKeyPrefix: String?,
+        @Value("\${rockscache.globalKeyPrefix:#{null}}") globalKeyPrefix: String?,
         redisProvider: RedisProvider,
         options: Options
     ): CacheClient =

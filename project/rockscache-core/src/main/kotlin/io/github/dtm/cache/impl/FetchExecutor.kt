@@ -50,23 +50,21 @@ internal class FetchExecutor<K, V>(
             owner
         )
 
-        val list = client.provider.eval(
-            LUA_GET,
-            redisKeyList,
-            args
-        ) as List<Any?>
+        val list = client.provider.eval(LUA_GET, redisKeyList, args) as List<Any?>
         val map = mutableMapOf<String, Pair<Any?, Any?>>()
         for (i in redisKeyList.indices) {
             val key = redisKeyList[i]
             val value = list[2 * i]
-            val status = list[2 * i + 1] as String?
+            val status = (list[2 * i + 1] as ByteArray?)?.let {
+                String(it)
+            }
             map[key] = value to status
         }
         return map
     }
 
     private fun luaSet(map: Map<String, V?>) {
-        val args = mutableListOf(owner)
+        val args = mutableListOf<Any>(owner)
         for (value in map.values) {
             args += if (value === null) {
                 options.emptyExpire
@@ -74,7 +72,7 @@ internal class FetchExecutor<K, V>(
                 expire
             }.toSeconds().toString()
             args += if (value === null) {
-                ""
+                ByteArray(0)
             } else {
                 valueSerializer.serialize(value)
             }
@@ -160,9 +158,9 @@ internal class FetchExecutor<K, V>(
         val resultMap = mutableMapOf<K, V>()
         for ((redisKey, tuple) in alreadyMap) {
             val key = keyMap[redisKey]!!
-            val value = tuple.first
-            if (value != null && value != "") {
-                resultMap[key] = valueSerializer.deserialize(value as String)
+            val value = tuple.first as ByteArray?
+            if (value != null && value.isNotEmpty()) {
+                resultMap[key] = valueSerializer.deserialize(value)
             }
         }
         if (missedKeys.isEmpty()) {
@@ -235,7 +233,7 @@ internal class FetchExecutor<K, V>(
             |    end
             |end
             |return list
-        """.trimMargin()
+        """.trimMargin().toByteArray()
 
         // Args: LockOwner, (Expire, Value)*
         @JvmStatic
@@ -251,6 +249,6 @@ internal class FetchExecutor<K, V>(
             |        redis.call('HSET', key, 'value', value)
             |    end
             |end
-        """.trimMargin()
+        """.trimMargin().toByteArray()
     }
 }

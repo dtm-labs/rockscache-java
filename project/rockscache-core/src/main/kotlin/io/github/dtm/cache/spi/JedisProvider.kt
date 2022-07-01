@@ -7,11 +7,15 @@ import redis.clients.jedis.JedisPool
  */
 class JedisProvider(
     private val pool: JedisPool
-) : RedisProvider {
+) : AbstractRedisProvider(true) {
 
-    override fun eval(lua: String, keys: List<String>, args: List<String>): Any? =
+    override fun eval(
+        lua: ByteArray,
+        keyCount: Int,
+        keyAndArgs: Array<ByteArray>
+    ): Any? =
         pool.resource.use { jedis ->
-            jedis.eval(lua, keys, args)
+            jedis.eval(lua, keyCount, *keyAndArgs)
         }
 
     override fun delete(keys: Collection<String>) {

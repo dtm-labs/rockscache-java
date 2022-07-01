@@ -42,7 +42,11 @@ internal class CacheClientImpl(
         )
 
     override fun close() {
-        asyncFetchService.close()
+        try {
+            asyncFetchService.close()
+        } finally {
+            (provider as? AutoCloseable)?.close()
+        }
     }
 
     internal class BuilderImpl : CacheClient.Builder {

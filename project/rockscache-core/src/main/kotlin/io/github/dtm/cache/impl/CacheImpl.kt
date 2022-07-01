@@ -1,9 +1,6 @@
 package io.github.dtm.cache.impl
 
-import io.github.dtm.cache.Cache
-import io.github.dtm.cache.Consistency
-import io.github.dtm.cache.LockScope
-import io.github.dtm.cache.Options
+import io.github.dtm.cache.*
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.ValueSerializer
 import org.slf4j.LoggerFactory
@@ -21,7 +18,7 @@ internal class CacheImpl<K, V>(
     private val keySerializer: KeySerializer<K>,
     private val valueSerializer: ValueSerializer<V>,
     private val expire: Duration,
-    private val loader: (Collection<K>) -> Map<K, V>,
+    private val loader: (Collection<K>) -> Map<K, V>
 ) : Cache<K, V> {
 
     override fun toCache(consistency: Consistency): Cache<K, V> =

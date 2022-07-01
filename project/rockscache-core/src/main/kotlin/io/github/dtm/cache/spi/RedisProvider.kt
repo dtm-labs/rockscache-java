@@ -5,7 +5,7 @@ package io.github.dtm.cache.spi
  */
 interface RedisProvider {
 
-    fun eval(lua: String, keys: List<String>, args: List<String>): Any?
+    fun eval(lua: ByteArray, keys: List<String>, args: List<Any?>): Any?
 
     fun delete(keys: Collection<String>)
 

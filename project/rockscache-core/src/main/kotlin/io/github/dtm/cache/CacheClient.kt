@@ -68,10 +68,10 @@ interface CacheClient : AutoCloseable {
     fun <K, V> newCache(
         keyPrefix: String,
         keySerializer: KeySerializer<K>,
-        valueSerializer: ValueSerializer<V>,
+        serializer: ValueSerializer<V>,
         block: CacheBuilderDsl<K, V>.() -> Unit
     ): Cache<K, V> =
-        newCacheBuilder(keyPrefix, keySerializer, valueSerializer).let {
+        newCacheBuilder(keyPrefix, keySerializer, serializer).let {
             (it as CacheBuilderImpl<K, V>).toDsl().block()
             it.build()
         }

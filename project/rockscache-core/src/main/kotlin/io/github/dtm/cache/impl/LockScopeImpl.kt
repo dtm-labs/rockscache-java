@@ -11,7 +11,7 @@ internal class LockScopeImpl(
     private val client: CacheClientImpl,
     private val options: Options,
     redisKeys: Set<String>,
-    private val owner: String,
+    private val owner: String
 ) : LockScope {
 
     private val redisKeys: List<String> = redisKeys.toList()
@@ -20,7 +20,7 @@ internal class LockScopeImpl(
         if (leaseTimeout < Duration.ofSeconds(1)) {
             throw IllegalArgumentException("leaseTime cannot be shorter than 1 second")
         }
-        val maxWaitMillis = System.currentTimeMillis() + waitTimeout.toMillis()
+        val latestStartMillis = System.currentTimeMillis() + waitTimeout.toMillis()
         while (true) {
             val nowMillis = System.currentTimeMillis()
             val untilMillis = nowMillis + leaseTimeout.toMillis()
@@ -34,10 +34,15 @@ internal class LockScopeImpl(
                     leaseTimeout.seconds.toString()
                 )
             )
-            if (result == "LOCKED") {
+            val status = if (result is List<*>) {
+                result[0]
+            } else {
+                result
+            }
+            if (LOCKED_BYTES.contentEquals(status as ByteArray)) {
                 return true
             }
-            if (System.currentTimeMillis() >= maxWaitMillis) {
+            if (System.currentTimeMillis() >= latestStartMillis) {
                 return false
             }
             Thread.sleep(options.lockSleep.toMillis())
@@ -81,7 +86,7 @@ internal class LockScopeImpl(
             |    end
             |end
             |return 'LOCKED'
-        """.trimMargin()
+        """.trimMargin().toByteArray()
 
         @JvmStatic
         private val LUA_UNLOCK = """-- luaLock
@@ -91,6 +96,9 @@ internal class LockScopeImpl(
             |        redis.call('DEL', key)
             |    end
             |end
-        """.trimMargin()
+        """.trimMargin().toByteArray()
+
+        @JvmStatic
+        private val LOCKED_BYTES = "LOCKED".toByteArray()
     }
 }

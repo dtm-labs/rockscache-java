@@ -1,7 +1,6 @@
 package io.github.dtm.cache.impl
 
 import io.github.dtm.cache.*
-import io.github.dtm.cache.java.Loader
 import io.github.dtm.cache.spi.KeySerializer
 import io.github.dtm.cache.spi.ValueSerializer
 import java.time.Duration
@@ -23,13 +22,10 @@ internal class CacheBuilderImpl<K, V>(
 
     private var consistency: Consistency? = null
 
-    override fun setLoader(loader: (Collection<K>) -> Map<K, V>): CacheBuilder<K, V> {
+    override fun setKtLoader(
+        loader: (Collection<K>) -> Map<K, V>
+    ): CacheBuilder<K, V> {
         this.loader = loader
-        return this
-    }
-
-    override fun setLoader(loader: Loader<K, V>): CacheBuilder<K, V> {
-        this.loader = { loader.load(it) }
         return this
     }
 

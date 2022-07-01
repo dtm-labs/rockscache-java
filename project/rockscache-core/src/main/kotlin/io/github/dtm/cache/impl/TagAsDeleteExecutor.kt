@@ -39,6 +39,6 @@ internal class TagAsDeleteExecutor(
                 |     redis.call('HDEL', key, 'lockOwner') 
                 |     redis.call('EXPIRE', key, ARGV[1])
                 | end
-            """.trimMargin()
+            """.trimMargin().toByteArray()
     }
 }

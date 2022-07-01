@@ -5,6 +5,7 @@ import io.github.dtm.cache.CacheClient
 import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.DirtyCacheException
 import io.github.dtm.cache.spi.JedisProvider
+import io.github.dtm.cache.spi.RedisProvider
 import redis.clients.jedis.JedisPool
 import java.time.Duration
 import java.util.concurrent.Executors
@@ -12,9 +13,9 @@ import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.test.*
 
-class CacheTest {
+abstract class AbstractCacheTest {
 
-    private val provider = JedisProvider(JedisPool("localhost", 6379))
+    private lateinit var provider: RedisProvider
 
     private lateinit var cacheClient: CacheClient
 
@@ -27,6 +28,7 @@ class CacheTest {
     @BeforeTest
     @Suppress("UNCHECKED_CAST")
     fun init() {
+        provider = createRedisProvider()
         provider.delete(
             listOf(
                 "test-scope-int-to-str-1",
@@ -45,7 +47,7 @@ class CacheTest {
                 loader = { keys ->
                     dbReadCount++
                     Thread.sleep(1000)
-                    keys.associateBy({it}) {
+                    keys.associateBy({ it }) {
                         dbMap[it]
                     }.filterValues { it !== null } as Map<Int, String>
                 }
@@ -62,6 +64,8 @@ class CacheTest {
     fun uninit() {
         cacheClient.close()
     }
+
+    protected abstract fun createRedisProvider(): RedisProvider
 
     @Test
     fun testFetchWithMixMode() {
@@ -291,12 +295,12 @@ class CacheTest {
             executorService.execute {
                 cache.tryLockAll(listOf(1, 2, 4), Duration.ofSeconds(4), Duration.ofSeconds(6))?.execute {
                     logLock.withLock { logs += "enter-$i" }
-                    Thread.sleep(2000)
+                    Thread.sleep(1000)
                     logLock.withLock { logs += "leave-$i" }
                 }
             }
         }
-        Thread.sleep(6500)
+        Thread.sleep(4000)
         expect("[enter-1, leave-1, enter-2, leave-2, enter-3, leave-3]") {
             logs.toString()
         }

@@ -8,26 +8,26 @@ import kotlin.reflect.KClass
 /**
  * @author 陈涛
  */
-interface KeySerializer<T> {
-    
-    fun serialize(key: T): String
-    
+interface KeySerializer<K> {
+
+    fun serialize(key: K): String
+
     companion object {
 
         /**
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>): KeySerializer<T> =
+        fun <K> jackson(type: Class<K>): KeySerializer<K> =
             jackson(type, ObjectMapper().registerModule(JavaTimeModule()))
 
         /**
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>, mapper: ObjectMapper): KeySerializer<T> {
-            return object : KeySerializer<T> {
-                override fun serialize(key: T): String =
+        fun <K> jackson(type: Class<K>, mapper: ObjectMapper): KeySerializer<K> {
+            return object : KeySerializer<K> {
+                override fun serialize(key: K): String =
                     mapper.writeValueAsString(key)
             }
         }
@@ -36,10 +36,10 @@ interface KeySerializer<T> {
          * For kotlin, not java
          */
         @JvmStatic
-        fun <T: Any> jackson(
-            type: KClass<T>,
+        fun <K: Any> jackson(
+            type: KClass<K>,
             mapper: ObjectMapper? = null
-        ): KeySerializer<T> =
+        ): KeySerializer<K> =
             jackson(
                 type.java,
                 mapper

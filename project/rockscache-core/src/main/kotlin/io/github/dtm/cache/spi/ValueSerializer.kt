@@ -8,11 +8,11 @@ import kotlin.reflect.KClass
 /**
  * @author 陈涛
  */
-interface ValueSerializer<T> {
+interface ValueSerializer<V> {
 
-    fun serialize(value: T): String
+    fun serialize(value: V): ByteArray
 
-    fun deserialize(bytes: String): T
+    fun deserialize(bytes: ByteArray): V
 
     companion object {
 
@@ -20,20 +20,20 @@ interface ValueSerializer<T> {
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>): ValueSerializer<T> =
+        fun <V> jackson(type: Class<V>): ValueSerializer<V> =
             jackson(type, ObjectMapper().registerModule(JavaTimeModule()))
 
         /**
          * For java, not kotlin
          */
         @JvmStatic
-        fun <T> jackson(type: Class<T>, mapper: ObjectMapper): ValueSerializer<T> {
-            return object : ValueSerializer<T> {
+        fun <V> jackson(type: Class<V>, mapper: ObjectMapper): ValueSerializer<V> {
+            return object : ValueSerializer<V> {
 
-                override fun serialize(value: T): String =
-                    mapper.writeValueAsString(value)
+                override fun serialize(value: V): ByteArray =
+                    mapper.writeValueAsBytes(value)
 
-                override fun deserialize(content: String): T =
+                override fun deserialize(content: ByteArray): V =
                     mapper.readValue(content, type)
             }
         }
@@ -42,10 +42,10 @@ interface ValueSerializer<T> {
          * For kotlin, not java
          */
         @JvmStatic
-        fun <T: Any> jackson(
-            type: KClass<T>,
+        fun <V: Any> jackson(
+            type: KClass<V>,
             mapper: ObjectMapper? = null
-        ): ValueSerializer<T> =
+        ): ValueSerializer<V> =
             jackson(
                 type.java,
                 mapper

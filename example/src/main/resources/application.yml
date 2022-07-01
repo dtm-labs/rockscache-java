@@ -1,0 +1,12 @@
+spring:
+  redis:
+    host: localhost
+    port: 6379
+  datasource:
+    url: jdbc:mysql://localhost:3306/kimmer
+    username: root
+    password: 123456
+
+springdoc:
+  swagger-ui:
+    path: /ui

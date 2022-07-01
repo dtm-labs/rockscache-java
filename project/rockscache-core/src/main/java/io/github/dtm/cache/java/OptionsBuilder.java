@@ -4,6 +4,8 @@ import io.github.dtm.cache.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * Java can not use kotlin data class,
