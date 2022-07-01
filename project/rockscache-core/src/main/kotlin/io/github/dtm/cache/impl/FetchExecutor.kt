@@ -101,18 +101,21 @@ internal class FetchExecutor<K, V>(
             map += luaGet(lockedByOtherKeys)
         }
 
-        val syncLoadingKeys = map.filterValues { it.first === null && it.second == LOCKED }.keys
-        val asyncLoadingKeys = map.filterValues { it.first !== null && it.second == LOCKED }.keys
-        if (asyncLoadingKeys.isNotEmpty()) {
+        val syncKeys = map.filterValues { it.first === null && it.second == LOCKED }.keys
+        val asyncKeys = map.filterValues { it.first !== null && it.second == LOCKED }.keys
+        if (asyncKeys.isNotEmpty()) {
+            if (LOGGER.isDebugEnabled) {
+                LOGGER.debug("Async fetch keys: $asyncKeys")
+            }
             client.asyncFetchService.add {
-                fetchNew(asyncLoadingKeys)
+                fetchNew(asyncKeys)
             }
         }
         if (options.consistency == Consistency.TRY_STRONG) {
             val dirtyKeys = map.filterValues { it.first !== null && it.second !== null }.keys
             if (dirtyKeys.isNotEmpty()) {
                 client.asyncFetchService.add {
-                    fetchNew(syncLoadingKeys)
+                    fetchNew(syncKeys)
                 }
                 throw DirtyCacheException(
                     "There are some dirty data in cache: $dirtyKeys",
@@ -120,7 +123,7 @@ internal class FetchExecutor<K, V>(
                 )
             }
         }
-        return fetchMore(map, syncLoadingKeys)
+        return fetchMore(map, syncKeys)
     }
 
     private fun strongFetch(): Map<K, V> {
@@ -182,9 +185,14 @@ internal class FetchExecutor<K, V>(
         if (LOGGER.isInfoEnabled) {
             LOGGER.info("Loading from database: $missedRedisKeys")
         }
-        val loadedMap = loader(missedKeys)
+        val loadedMap = try {
+            loader(missedKeys)
+        } catch (ex: Throwable) {
+            LOGGER.error("Failed to load $missedKeys from database")
+            throw ex
+        }
         if (LOGGER.isInfoEnabled) {
-            LOGGER.info("Loaded from database: $missedRedisKeys")
+            LOGGER.info("Loaded from database: $missedRedisKeys, $loadedMap")
         }
         if (options.emptyExpire == Duration.ZERO) {
             val nullKeys = missedRedisKeys - loadedMap.keys.map { redisKeyMap[it]!! }.toSet()
@@ -199,6 +207,9 @@ internal class FetchExecutor<K, V>(
             if (value != null || options.emptyExpire != Duration.ZERO) {
                 writeMap[missedRedisKey] = value
             }
+        }
+        if (LOGGER.isDebugEnabled) {
+            LOGGER.debug("Loaded ${writeMap.keys} from database and save them into redis")
         }
         luaSet(writeMap)
         return loadedMap
@@ -216,17 +227,17 @@ internal class FetchExecutor<K, V>(
             |local list = {}
             |for index, key in ipairs(KEYS) do
             |    local v = redis.call('HGET', key, 'value')
-	        |    local lu = redis.call('HGET', key, 'lockUntil')
+            |    local lu = redis.call('HGET', key, 'lockUntil')
             |    list[index * 2 - 1] = v
-	        |    if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
-		    |        redis.call('HSET', key, 'lockUntil', ARGV[2])
-		    |        redis.call('HSET', key, 'lockOwner', ARGV[3])
-		    |        list[2 * index] = 'LOCKED'
+            |    if lu ~= false and tonumber(lu) < tonumber(ARGV[1]) or lu == false and v == false then
+            |        redis.call('HSET', key, 'lockUntil', ARGV[2])
+            |        redis.call('HSET', key, 'lockOwner', ARGV[3])
+            |        list[2 * index] = 'LOCKED'
             |    else
             |        list[2 * index] = lu
-	        |    end
+            |    end
             |end
-	        |return list
+            |return list
         """.trimMargin()
 
         // Args: LockOwner, (Expire, Value)*

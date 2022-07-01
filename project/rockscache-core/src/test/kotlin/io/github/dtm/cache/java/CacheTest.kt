@@ -64,7 +64,7 @@ class CacheTest {
     }
 
     @Test
-    fun testFetch() {
+    fun testFetchWithMixMode() {
         expect(0) { dbReadCount }
         expect("One") {cache.fetch(1) }
         expect(1) { dbReadCount }
@@ -84,7 +84,47 @@ class CacheTest {
     }
 
     @Test
-    fun testFetchAll() {
+    fun testFetchWeakOnly() {
+        expect(0) { dbReadCount }
+        expect("One") {cache.fetch(1) }
+        expect(1) { dbReadCount }
+        dbMap[1] = "ONE"
+        cache.tagAsDeleted(1)
+        for (i in 0..5) {
+            expect("One") { cache.fetch(1) }
+        }
+        expect(2) { dbReadCount }
+        Thread.sleep(3000)
+        for (i in 0..5) {
+            expect("ONE") { cache.fetch(1) }
+        }
+        expect(2) { dbReadCount }
+    }
+
+    @Test
+    fun testFetchTryStrongOnly() {
+        expect(0) { dbReadCount }
+        expect("One") {cache.fetch(1) }
+        expect(1) { dbReadCount }
+        dbMap[1] = "ONE"
+        cache.tagAsDeleted(1)
+        for (i in 0..5) {
+            try {
+                expect("One") { cache.fetch(1, Consistency.TRY_STRONG) }
+                fail("Expect ${DirtyCacheException::class.qualifiedName}")
+            } catch (ignored: DirtyCacheException) {
+            }
+        }
+        expect(2) { dbReadCount }
+        Thread.sleep(3000)
+        for (i in 0..5) {
+            expect("ONE") { cache.fetch(1, Consistency.TRY_STRONG) }
+        }
+        expect(2) { dbReadCount }
+    }
+
+    @Test
+    fun testFetchAllWithMixMode() {
         expect(0) { dbReadCount }
         expect(
             mapOf(
@@ -133,7 +173,94 @@ class CacheTest {
     }
 
     @Test
-    fun testAllowDirtyCacheException() {
+    fun testFetchAllWeakOnly() {
+        expect(0) { dbReadCount }
+        expect(
+            mapOf(
+                1 to "One",
+                2 to "Two",
+                3 to "Three"
+            )
+        ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
+        expect(1) { dbReadCount }
+        dbMap[1] = "ONE"
+        dbMap[2] = "TWO"
+        dbMap[3] = "THREE"
+        cache.tagAllAsDeleted(listOf(1, 2, 3, 4))
+
+        Thread.sleep(100)
+
+        for (i in 0..5) {
+            expect(
+                mapOf(
+                    1 to "One",
+                    2 to "Two",
+                    3 to "Three"
+                )
+            ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
+        }
+        expect(2) { dbReadCount }
+        Thread.sleep(3000)
+        for (i in 0..5) {
+            expect(
+                mapOf(
+                    1 to "ONE",
+                    2 to "TWO",
+                    3 to "THREE"
+                )
+            ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
+        }
+        expect(2) { dbReadCount }
+    }
+
+    @Test
+    fun testFetchAllTryStrongOnly() {
+        expect(0) { dbReadCount }
+        expect(
+            mapOf(
+                1 to "One",
+                2 to "Two",
+                3 to "Three"
+            )
+        ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
+        expect(1) { dbReadCount }
+        dbMap[1] = "ONE"
+        dbMap[2] = "TWO"
+        dbMap[3] = "THREE"
+        cache.tagAllAsDeleted(listOf(1, 2, 3, 4))
+
+        Thread.sleep(100)
+
+        for (i in 0..5) {
+            try {
+                expect(
+                    mapOf(
+                        1 to "One",
+                        2 to "Two",
+                        3 to "Three"
+                    )
+                ) { cache.fetchAll(listOf(1, 2, 3, 4), Consistency.TRY_STRONG) }
+                fail("Expect ${DirtyCacheException::class.qualifiedName}")
+            } catch (ignored: DirtyCacheException) {
+
+            }
+        }
+        expect(2) { dbReadCount }
+        Thread.sleep(3000)
+        for (i in 0..5) {
+            expect(
+                mapOf(
+                    1 to "ONE",
+                    2 to "TWO",
+                    3 to "THREE"
+                )
+            ) { cache.fetchAll(listOf(1, 2, 3, 4), Consistency.TRY_STRONG) }
+        }
+        expect(2) { dbReadCount }
+    }
+
+    @Test
+    fun testTryStrongFetch() {
         for (i in 0..5) {
             expect("One") { cache.fetch(1, Consistency.TRY_STRONG) }
         }

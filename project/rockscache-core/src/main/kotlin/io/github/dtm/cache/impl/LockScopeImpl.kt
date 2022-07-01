@@ -58,13 +58,13 @@ internal class LockScopeImpl(
             |for index, key in ipairs(KEYS) do
             |    local exists = redis.call('EXISTS', key)
             |    local lu = redis.call('HGET', key, 'lockUntil')
-	        |    local lo = redis.call('HGET', key, 'lockOwner')
-	        |    if lu == false or tonumber(lu) < tonumber(ARGV[2]) or lo == ARGV[1] then
+            |    local lo = redis.call('HGET', key, 'lockOwner')
+            |    if lu == false or tonumber(lu) < tonumber(ARGV[2]) or lo == ARGV[1] then
             |        exists_arr[index] = exists
             |        lu_arr[index] = lu
             |        lo_arr[index] = lo
-		    |        redis.call('HSET', key, 'lockUntil', ARGV[3])
-		    |        redis.call('HSET', key, 'lockOwner', ARGV[1])
+            |        redis.call('HSET', key, 'lockUntil', ARGV[3])
+            |        redis.call('HSET', key, 'lockOwner', ARGV[1])
             |        if exists == 0 then
             |            redis.call('EXPIRE', key, ARGV[4])
             |        end
@@ -78,7 +78,7 @@ internal class LockScopeImpl(
             |            end
             |        end
             |        return 'FAILED'
-	        |    end
+            |    end
             |end
             |return 'LOCKED'
         """.trimMargin()
@@ -87,9 +87,9 @@ internal class LockScopeImpl(
         private val LUA_UNLOCK = """-- luaLock
             |for index, key in ipairs(KEYS) do
             |    local lo = redis.call('HGET', key, 'lockOwner')
-	        |    if lo == ARGV[1] then
-		    |        redis.call('DEL', key)
-	        |    end
+            |    if lo == ARGV[1] then
+            |        redis.call('DEL', key)
+            |    end
             |end
         """.trimMargin()
     }

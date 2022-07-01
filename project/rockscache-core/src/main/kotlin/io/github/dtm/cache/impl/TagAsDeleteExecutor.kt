@@ -34,7 +34,7 @@ internal class TagAsDeleteExecutor(
         private val LUA_TAG_AS_DELETE =
             """
                 | --lua tagAsDelete
-		        | for index, key in ipairs(KEYS) do
+                | for index, key in ipairs(KEYS) do
                 |     redis.call('HSET', key, 'lockUntil', 0) 
                 |     redis.call('HDEL', key, 'lockOwner') 
                 |     redis.call('EXPIRE', key, ARGV[1])
