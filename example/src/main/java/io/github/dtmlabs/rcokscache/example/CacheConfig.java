@@ -8,6 +8,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CacheConfig {
 
+    /*
+     * Automatically created by rockscache-spring-boot,
+     * you need configure spring-redis in application.yml
+     */
     private final CacheClient cacheClient;
 
     private final EmployeeRepository employeeRepository;
