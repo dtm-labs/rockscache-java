@@ -21,6 +21,12 @@ public class CacheConfig {
         this.employeeRepository = employeeRepository;
     }
 
+    /*
+     * This demo shows only one cache.
+     *
+     * In actual projects, you can create many caches
+     * by many methods of this class with the annotation @Bean.
+     */
     @Bean(CacheNames.EMPLOYEE)
     public Cache<Long, Employee> employeeCache() {
         return cacheClient
