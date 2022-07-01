@@ -4,8 +4,6 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.util.Objects;
-
 /**
  * @author 陈涛
  */
@@ -24,13 +22,4 @@ public class Employee {
     private String firstName;
     
     private String lastName;
-
-    /*
-     * `getId` must be declared explicitly,
-     * otherwise, `Employee::getId` can not
-     * be accepted by gradle build command
-     */
-    public Long getId() {
-        return id;
-    }
 }
