@@ -94,7 +94,7 @@ class CacheTest {
             expect("One") { cache.fetch(1) }
         }
         expect(2) { dbReadCount }
-        Thread.sleep(3000)
+        Thread.sleep(1000)
         for (i in 0..5) {
             expect("ONE") { cache.fetch(1) }
         }
@@ -116,7 +116,7 @@ class CacheTest {
             }
         }
         expect(2) { dbReadCount }
-        Thread.sleep(3000)
+        Thread.sleep(1000)
         for (i in 0..5) {
             expect("ONE") { cache.fetch(1, Consistency.TRY_STRONG) }
         }
@@ -200,7 +200,7 @@ class CacheTest {
             ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
         }
         expect(2) { dbReadCount }
-        Thread.sleep(3000)
+        Thread.sleep(1000)
         for (i in 0..5) {
             expect(
                 mapOf(
@@ -246,7 +246,7 @@ class CacheTest {
             }
         }
         expect(2) { dbReadCount }
-        Thread.sleep(3000)
+        Thread.sleep(1000)
         for (i in 0..5) {
             expect(
                 mapOf(

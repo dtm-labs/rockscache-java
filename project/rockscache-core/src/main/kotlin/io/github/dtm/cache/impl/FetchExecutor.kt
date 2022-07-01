@@ -191,9 +191,6 @@ internal class FetchExecutor<K, V>(
             LOGGER.error("Failed to load $missedKeys from database")
             throw ex
         }
-        if (LOGGER.isInfoEnabled) {
-            LOGGER.info("Loaded from database: $missedRedisKeys, $loadedMap")
-        }
         if (options.emptyExpire == Duration.ZERO) {
             val nullKeys = missedRedisKeys - loadedMap.keys.map { redisKeyMap[it]!! }.toSet()
             if (nullKeys.isNotEmpty()) {
