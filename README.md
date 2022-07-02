@@ -3,8 +3,8 @@ A Redis Cache Library To Ensure Eventual Consistency And Strong Consistency With
 
 # DONE
 Main Code
+Example Code
 
 # Not DONE
-1. Spring wrapper
-2. Example
-3. Documentation
+1. Publish to Maven central(Now, example temporarily uses relative local jar files as dependency)
+2. Documentation
