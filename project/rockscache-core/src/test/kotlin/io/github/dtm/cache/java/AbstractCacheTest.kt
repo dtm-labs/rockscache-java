@@ -8,7 +8,11 @@ import io.github.dtm.cache.spi.JedisProvider
 import io.github.dtm.cache.spi.RedisProvider
 import redis.clients.jedis.JedisPool
 import java.time.Duration
+import java.util.*
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.test.*
@@ -76,12 +80,14 @@ abstract class AbstractCacheTest {
         expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
-        Thread.sleep(100)
-        for (i in 0..5) {
+
+        parallel(5) {
             expect("One") { cache.fetch(1) }
         }
+        Thread.sleep(100)
+
         expect(2) { dbReadCount }
-        for (i in 0..5) {
+        parallel(5) {
             expect("ONE") { cache.fetch(1, Consistency.STRONG) }
         }
         expect(2) { dbReadCount }
@@ -94,12 +100,15 @@ abstract class AbstractCacheTest {
         expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
-        for (i in 0..5) {
+
+        parallel(5) {
             expect("One") { cache.fetch(1) }
         }
+        Thread.sleep(100)
         expect(2) { dbReadCount }
+
         Thread.sleep(1000)
-        for (i in 0..5) {
+        parallel(5) {
             expect("ONE") { cache.fetch(1) }
         }
         expect(2) { dbReadCount }
@@ -112,16 +121,19 @@ abstract class AbstractCacheTest {
         expect(1) { dbReadCount }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
-        for (i in 0..5) {
+
+        parallel(5) {
             try {
                 expect("One") { cache.fetch(1, Consistency.TRY_STRONG) }
                 fail("Expect ${DirtyCacheException::class.qualifiedName}")
             } catch (ignored: DirtyCacheException) {
             }
         }
+        Thread.sleep(100)
         expect(2) { dbReadCount }
+
         Thread.sleep(1000)
-        for (i in 0..5) {
+        parallel(5) {
             expect("ONE") { cache.fetch(1, Consistency.TRY_STRONG) }
         }
         expect(2) { dbReadCount }
@@ -153,7 +165,7 @@ abstract class AbstractCacheTest {
 
         Thread.sleep(100)
 
-        for (i in 0..5) {
+        parallel(5) {
             expect(
                 mapOf(
                     1 to "One",
@@ -162,9 +174,10 @@ abstract class AbstractCacheTest {
                 )
             ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
         }
+        Thread.sleep(100)
         expect(2) { dbReadCount }
 
-        for (i in 0..5) {
+        parallel(5) {
             expect(
                 mapOf(
                     1 to "ONE",
@@ -194,7 +207,7 @@ abstract class AbstractCacheTest {
 
         Thread.sleep(100)
 
-        for (i in 0..5) {
+        parallel(5) {
             expect(
                 mapOf(
                     1 to "One",
@@ -203,9 +216,11 @@ abstract class AbstractCacheTest {
                 )
             ) { cache.fetchAll(listOf(1, 2, 3, 4)) }
         }
+        Thread.sleep(100)
         expect(2) { dbReadCount }
+
         Thread.sleep(1000)
-        for (i in 0..5) {
+        parallel(5) {
             expect(
                 mapOf(
                     1 to "ONE",
@@ -235,7 +250,7 @@ abstract class AbstractCacheTest {
 
         Thread.sleep(100)
 
-        for (i in 0..5) {
+        parallel(5) {
             try {
                 expect(
                     mapOf(
@@ -249,9 +264,11 @@ abstract class AbstractCacheTest {
 
             }
         }
+        Thread.sleep(100)
         expect(2) { dbReadCount }
+
         Thread.sleep(1000)
-        for (i in 0..5) {
+        parallel(5) {
             expect(
                 mapOf(
                     1 to "ONE",
@@ -265,13 +282,13 @@ abstract class AbstractCacheTest {
 
     @Test
     fun testTryStrongFetch() {
-        for (i in 0..5) {
+        parallel(5) {
             expect("One") { cache.fetch(1, Consistency.TRY_STRONG) }
         }
         dbMap[1] = "ONE"
         cache.tagAsDeleted(1)
         Thread.sleep(100)
-        for (i in 0..5) {
+        parallel(5) {
             try {
                 cache.fetch(1, Consistency.TRY_STRONG)
                 fail("Expects ${DirtyCacheException::class.qualifiedName}")
@@ -293,16 +310,42 @@ abstract class AbstractCacheTest {
         for (i in 1..threadCount) {
             Thread.sleep(10)
             executorService.execute {
-                cache.tryLockAll(listOf(1, 2, 4), Duration.ofSeconds(4), Duration.ofSeconds(6))?.execute {
-                    logLock.withLock { logs += "enter-$i" }
-                    Thread.sleep(1000)
-                    logLock.withLock { logs += "leave-$i" }
+                cache.lockAllOperator(listOf(1, 2, 4), UUID.randomUUID().toString()).apply {
+                    lock(Duration.ofSeconds(4))
+                    try {
+                        logLock.withLock { logs += "enter-$i" }
+                        Thread.sleep(1000)
+                        logLock.withLock { logs += "leave-$i" }
+                    } finally {
+                        unlock()
+                    }
                 }
             }
         }
         Thread.sleep(4000)
         expect("[enter-1, leave-1, enter-2, leave-2, enter-3, leave-3]") {
             logs.toString()
+        }
+    }
+
+    private fun parallel(threadCount: Int, action: () -> Unit) {
+        var throwableRef = AtomicReference<Throwable>()
+        Executors.newFixedThreadPool(threadCount).invokeAll(
+            (1..threadCount).map {
+                val runnable: Callable<Void> = Callable {
+                    try {
+                        action()
+                    } catch (ex: Throwable) {
+                        throwableRef.compareAndSet(null, ex)
+                    }
+                    null
+                }
+                runnable
+            }
+        )
+        val throwable = throwableRef.get()
+        if (throwable != null) {
+            throw throwable
         }
     }
 }

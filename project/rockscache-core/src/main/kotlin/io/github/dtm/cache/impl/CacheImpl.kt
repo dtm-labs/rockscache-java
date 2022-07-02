@@ -6,7 +6,6 @@ import io.github.dtm.cache.spi.ValueSerializer
 import org.slf4j.LoggerFactory
 import java.lang.IllegalStateException
 import java.time.Duration
-import java.util.*
 
 /**
  * @author 陈涛
@@ -86,23 +85,23 @@ internal class CacheImpl<K, V>(
         }
     }
 
-    override fun tryLockAll(keys: Collection<K>, waitTimeout: Duration, leaseTimeout: Duration): LockScope? {
+    override fun lockAllOperator(keys: Collection<K>, lockId: String): LockOperator<K> {
         if (keys.size > options.batchSize) {
             throw IllegalArgumentException(
                 "keys.size() is ${keys.size}, it is greater than batchSize ${options.batchSize}"
             )
         }
-        val scope = LockScopeImpl(
+        if (lockId.isEmpty()) {
+            throw IllegalArgumentException(
+                "lockId cannot be empty"
+            )
+        }
+        return LockOperatorImpl(
             client,
             options,
-            keys.map { "${keyPrefix}${keySerializer.serialize(it)}" }.toSet(),
-            UUID.randomUUID().toString()
+            lockId,
+            keys.map { "${keyPrefix}${keySerializer.serialize(it)}" }.toSet()
         )
-        return if (scope.tryLock(waitTimeout, leaseTimeout)) {
-            scope
-        } else {
-            null
-        }
     }
 
     companion object {

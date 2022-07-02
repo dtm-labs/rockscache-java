@@ -25,8 +25,8 @@ interface Cache<K, V> {
 
     fun tagAllAsDeleted(keys: Collection<K>)
 
-    fun tryLock(key: K, waitTimeout: Duration, leaseTimeout: Duration): LockScope? =
-        tryLockAll(setOf(key), waitTimeout, leaseTimeout)
+    fun lockOperator(key: K, lockId: String): LockOperator<K> =
+        lockAllOperator(setOf(key), lockId)
 
-    fun tryLockAll(keys: Collection<K>, waitTimeout: Duration, leaseTimeout: Duration): LockScope?
+    fun lockAllOperator(keys: Collection<K>, lockId: String): LockOperator<K>
 }

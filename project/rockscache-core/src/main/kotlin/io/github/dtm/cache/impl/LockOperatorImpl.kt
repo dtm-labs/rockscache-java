@@ -1,51 +1,56 @@
 package io.github.dtm.cache.impl
 
-import io.github.dtm.cache.LockScope
+import io.github.dtm.cache.LockException
+import io.github.dtm.cache.LockOperator
 import io.github.dtm.cache.Options
 import java.time.Duration
 
 /**
  * @author 陈涛
  */
-internal class LockScopeImpl(
+internal class LockOperatorImpl<K>(
     private val client: CacheClientImpl,
     private val options: Options,
-    redisKeys: Set<String>,
-    private val owner: String
-) : LockScope {
+    private val owner: String,
+    redisKeys: Set<String>
+): LockOperator<K> {
 
-    private val redisKeys: List<String> = redisKeys.toList()
+    private val redisKeys = redisKeys.toList()
 
-    fun tryLock(waitTimeout: Duration, leaseTimeout: Duration): Boolean {
-        if (leaseTimeout < Duration.ofSeconds(1)) {
-            throw IllegalArgumentException("leaseTime cannot be shorter than 1 second")
-        }
+    override fun lock(waitTimeout: Duration) {
         val latestStartMillis = System.currentTimeMillis() + waitTimeout.toMillis()
-        while (true) {
-            val nowMillis = System.currentTimeMillis()
-            val untilMillis = nowMillis + leaseTimeout.toMillis()
-            val result = client.provider.eval(
-                LUA_LOCK,
-                redisKeys,
-                listOf(
-                    owner,
-                    nowMillis.toString(),
-                    untilMillis.toString(),
-                    leaseTimeout.seconds.toString()
+        try {
+            while (true) {
+                val nowMillis = System.currentTimeMillis()
+                val untilMillis = nowMillis + LEASE_TIMEOUT.toMillis()
+                val result = client.provider.eval(
+                    LUA_LOCK,
+                    redisKeys,
+                    listOf(
+                        owner,
+                        nowMillis.toString(),
+                        untilMillis.toString(),
+                        LEASE_TIMEOUT.seconds.toString()
+                    )
                 )
-            )
-            val status = if (result is List<*>) {
-                result[0]
-            } else {
-                result
+                val status = if (result is List<*>) {
+                    result[0]
+                } else {
+                    result
+                }
+                if (LOCKED_BYTES.contentEquals(status as ByteArray)) {
+                    return
+                }
+                if (System.currentTimeMillis() >= latestStartMillis) {
+                    throw LockException(redisKeys)
+                }
+                Thread.sleep(options.lockSleep.toMillis())
             }
-            if (LOCKED_BYTES.contentEquals(status as ByteArray)) {
-                return true
+        } catch (ex: Throwable) {
+            if (ex is LockException) {
+                throw ex
             }
-            if (System.currentTimeMillis() >= latestStartMillis) {
-                return false
-            }
-            Thread.sleep(options.lockSleep.toMillis())
+            throw LockException(redisKeys, ex)
         }
     }
 
@@ -100,5 +105,8 @@ internal class LockScopeImpl(
 
         @JvmStatic
         private val LOCKED_BYTES = "LOCKED".toByteArray()
+
+        @JvmStatic
+        private val LEASE_TIMEOUT = Duration.ofHours(24)
     }
 }

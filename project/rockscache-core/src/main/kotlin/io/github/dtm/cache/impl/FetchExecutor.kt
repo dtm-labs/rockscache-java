@@ -133,7 +133,7 @@ internal class FetchExecutor<K, V>(
         val map = luaGet(keyMap.keys)
 
         while (true) {
-            val lockedByOtherKeys = map.filterValues { it.first !== null && it.second != null && it.second != LOCKED }.keys
+            val lockedByOtherKeys = map.filterValues { it.second != null && it.second != LOCKED }.keys
             if (lockedByOtherKeys.isEmpty()) {
                 break
             }
