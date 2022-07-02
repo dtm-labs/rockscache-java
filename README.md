@@ -1,10 +1,10 @@
 # rockscache-java
 A Redis Cache Library To Ensure Eventual Consistency And Strong Consistency With DB.
 
-# DONE
-Main Code
-Example Code
+# Done
+1. Main Code
+2. Example Code
 
-# Not DONE
+# Not done
 1. Publish to Maven central(Now, example temporarily uses relative local jar files as dependency)
 2. Documentation
