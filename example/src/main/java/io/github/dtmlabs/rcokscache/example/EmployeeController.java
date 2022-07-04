@@ -1,6 +1,7 @@
 package io.github.dtmlabs.rcokscache.example;
 
 import io.github.dtm.cache.Cache;
+import io.github.dtm.cache.Consistency;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,8 +22,11 @@ public class EmployeeController {
     }
 
     @GetMapping("/{id}")
-    public Employee find(@PathVariable("id") long id) {
-        return employeeCache.fetch(id);
+    public Employee find(
+            @PathVariable("id") long id,
+            @RequestParam(value = "consistency", defaultValue = "EVENTUAL") Consistency consistency
+    ) {
+        return employeeCache.fetch(id, consistency);
     }
 
     @PutMapping

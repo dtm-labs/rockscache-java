@@ -4,14 +4,12 @@ import io.github.dtm.cache.Cache
 import io.github.dtm.cache.CacheClient
 import io.github.dtm.cache.Consistency
 import io.github.dtm.cache.DirtyCacheException
-import io.github.dtm.cache.spi.JedisProvider
 import io.github.dtm.cache.spi.RedisProvider
-import redis.clients.jedis.JedisPool
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.Callable
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -303,29 +301,25 @@ abstract class AbstractCacheTest {
 
     @Test
     fun testLockForUpdate() {
-        val threadCount = 3
-        val logs = mutableListOf<String>()
+        val threadCount = 2
         val logLock = ReentrantLock()
         val executorService = Executors.newFixedThreadPool(threadCount)
+        val reentrantCount = AtomicInteger(0)
         for (i in 1..threadCount) {
-            Thread.sleep(10)
             executorService.execute {
                 cache.lockAllOperator(listOf(1, 2, 4), UUID.randomUUID().toString()).apply {
                     lock(Duration.ofSeconds(4))
                     try {
-                        logLock.withLock { logs += "enter-$i" }
-                        Thread.sleep(1000)
-                        logLock.withLock { logs += "leave-$i" }
+                        expect(0) { reentrantCount.getAndIncrement() }
+                        Thread.sleep(2000)
+                        expect(0) { reentrantCount.decrementAndGet() }
                     } finally {
                         unlock()
                     }
                 }
             }
         }
-        Thread.sleep(4000)
-        expect("[enter-1, leave-1, enter-2, leave-2, enter-3, leave-3]") {
-            logs.toString()
-        }
+        Thread.sleep(2000L * (threadCount + 1))
     }
 
     private fun parallel(threadCount: Int, action: () -> Unit) {

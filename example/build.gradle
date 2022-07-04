@@ -24,14 +24,6 @@ dependencies {
 
 	runtimeOnly 'mysql:mysql-connector-java'
 
-	implementation files('../project/rockscache-core/build/libs/rockscache-core-0.0.0.jar')
-	implementation files('../project/rockscache-spring-boot/build/libs/rockscache-spring-boot-0.0.0.jar')
-
-	// Temporary dependencies, delete then when rockscache-java is published
+	implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.1'
 	implementation 'org.jetbrains.kotlin:kotlin-stdlib'
-	implementation("redis.clients:jedis:4.2.3")
-	implementation("com.fasterxml.jackson.core:jackson-databind:2.13.3")
-	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.3")
-	implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.3")
-	implementation("org.springframework.boot:spring-boot-starter-data-redis:2.7.0")
 }
