@@ -20,6 +20,7 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    api(kotlin("reflect"))
 
     implementation("redis.clients:jedis:4.2.3")
     implementation("io.lettuce:lettuce-core:6.1.8.RELEASE")

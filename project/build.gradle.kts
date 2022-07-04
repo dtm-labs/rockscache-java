@@ -1,4 +1,4 @@
 allprojects {
     group = "io.github.dtm-labs"
-    version = "0.0.1"
+    version = "0.0.4"
 }

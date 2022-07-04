@@ -24,6 +24,5 @@ dependencies {
 
 	runtimeOnly 'mysql:mysql-connector-java'
 
-	implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.1'
-	implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+	implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.4'
 }
