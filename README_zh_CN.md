@@ -188,7 +188,7 @@ public class OrderService {
 
     public OrderSerivce(
 
-        // 由于缓存对象由很多个，请明确指定@Qualifier
+        // 由于缓存对象有很多个，请明确指定@Qualifier
         @Qualifier(CacheNames.ORDER) Cache<Long> orderCache,
 
         OrderRepository orderRepository
