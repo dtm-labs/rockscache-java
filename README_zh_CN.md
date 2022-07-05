@@ -40,12 +40,14 @@
   ```
 
 - 对于使用maven的用户，请添加依赖
+  ```
   <dependency>
     <groupId>io.github.dtm-labs</groupId>
     <artifactId>rockscache-spring-boot</artifactId>
     <version>0.0.4</version>
   </dependency>
-
+  ```
+  
 ### 在application.properties或application.yml中定义spring.redis相关配置
 
 ### 定义程序需要的所有缓存名
@@ -157,13 +159,13 @@ public class CacheConfig {
 
 4. setJavaLoader方法表示，如果制定的数据不存在，该如何从数据库中加载。
 
-   > 这里的setJavaLoader是针对Java开发者的，如果是kotlin开发者，请调用setKtLoader
+   > 这里的`setJavaLoader`是针对Java开发者的，如果是kotlin开发者，请调用`setKtLoader`。
 
-5. 如果底层数据访问对象返回List&lt;V&gt; 而非Map&lt;K, V&gt;，这个Lambda表达式表示如何从值对象获得键。
+5. 如果数据访问行为返回`List<V>`，而非`Map<K, V>`，这个Lambda表达式表示如何从值对象获得键。
 
-   > 如果底层数据对象直接返回Map&lt;K, V&gt; 就会调用setJavaLoader方法的其他重载形式，而其他重载形式根本就无此参数。对于某些根本没有id的对象，这些重载版会很有用。
+   > 如果数据访问行为返回`Map<K, V>`; 需调用`setJavaLoader`方法的其他重载形式，而其他重载形式无此参数。对于某些根本没有id的对象，这些重载版会很有用。
 
-6. 一个Lambda表示，表示底层数据访问对象的行为
+6. 一个Lambda表达式，表示数据访问行为
 
-   > 在本文所讨论用法所涉及的重载版本中，这个lambda的签名是(List<K>) -> List<V>。在使用spring-data的前提下，这个形式的数据查询总会被自动生成，无需开发。
+   > 在本文所讨论用法所涉及的重载版本中，这个lambda的签名是`(List<K>) -> List<V>`。在使用spring-data的前提下，这个形式的数据查询总会被自动生成，无需开发。
 
