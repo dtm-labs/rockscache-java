@@ -49,7 +49,7 @@ open class RocksCacheConfiguration {
         SpringRedisProvider(connectionFactory)
 
     @ConditionalOnMissingBean(CacheClient::class)
-    @Bean
+    @Bean(destroyMethod = "close")
     open fun cacheClient(
         @Value("\${rockscache.globalKeyPrefix:#{null}}") globalKeyPrefix: String?,
         redisProvider: RedisProvider,
