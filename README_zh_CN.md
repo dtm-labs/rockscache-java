@@ -346,7 +346,6 @@ Consistency采用多级继承覆盖的配置方法
 |配置项｜描述｜类型｜默认值｜
 |-----|----|----|------|
 |rockscache.globalKeyPrefix|如果不同微服务共享redis(虽然不推荐，但是有可能)，为了防止不同微服务的缓存彼此打架而引入的名字空间。加入指定为`my-service-`，这时reids中key的名称为`my-service-order-1`｜String｜无｜
-|           |            |             |               |
 |rockscache.delay|被`tagAsDeleted`/`tagAllAsDeleted`的数据在redis中的过期时间｜Duration｜PT10S｜
 |rockscache.emptyExpire|null数据在reids中的过期时间｜Duration｜PT60S｜
 |rockscache.lockExpire|解决数据一致性的锁的时间｜Duration｜PT3S｜
