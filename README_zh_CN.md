@@ -213,7 +213,7 @@ public class OrderService {
 }
 ```
 
-### Cache接口的所有方法
+### Cache接口的行为
 
 ```kotlin
 interface Cache<K, V> {
@@ -243,8 +243,100 @@ interface Cache<K, V> {
 }
 ```
 
-- toCache：对于`fetch(K)`和`fetchAll(Collection<K>)`这两个没有明确指定数据型一致性要求，即`Consistency`。默认情况下，会采用缓存对象默认的一致性。
+- `toCache`：对于`fetch(K)`和`fetchAll(Collection<K>)`这两个没有明确指定数据型一致性要求，即`Consistency`。默认情况下，会采用缓存对象默认的一致性。
 
   > 注意：
   > 
   > 此方法并不会改表当前Cache的默认Consistency，而是创建一个新的Cache，除了默认的Consistency不同外，新旧Cache的功能没有任何差异。
+
+- `fetch(K)`: 以当前缓存对象默认的一致性要求，查询一个数据
+
+- `fetch(K, Consistency)`: 以用户制定的的一致性要求，查询一个数据
+
+- `fetchAll(Collection<K>)`: 以当前缓存对象默认的一致性要求，查询多个数据
+
+- `fetchAll(Collection<K>, Consistency)`: 以用户制定的的一致性要求，查询多个数据
+
+- `tagAsDeleted`: 将一个数据标记成已删除
+
+- `tagAllAsDeleted`: 将多个数据标记成已删除
+
+- lockOperator(K, String): 制定一个随机的lockId，获取一个数据的锁操作对象
+  
+  > 注意
+  > 
+  > 返回的对象支持两个方法：`lock`和`unlock`
+  > 当前对象返回是，并未上锁，必须调用返回对象的`lock`方法才会上锁
+  > 返回对象的`lock`需要制定最大等待时间。如在规定时间内不能抢到锁，抛出异常
+  > 由于分布式通信的不可靠性，一旦调用了返回对象的`lock`，无论成败，都需要调用其`unlock`，而且要使用可靠消息来保证这点。
+
+- lockAllOperator(Collection<K>, String): 制定一个随机的lockId，获取多个数据的锁操作对象
+  
+  > 注意事项同lockOperator
+
+### 一致性要求
+
+```kotlin
+enum class Consistency {
+    EVENTUAL,
+    STRONG,
+    TRY_STRONG
+}
+```
+
+- EVENTUAL: 最终一致。
+
+    只要缓存中存在数据，无论是否一致，都立即返回。
+
+    如果此举导致某个不一致的数据被返回了，系统会让后续请求尽快地能拿到一致的数据。
+
+- STRONG: 强一致
+
+    除非缓存中现有数据是一致的，否则，以等待为代价，保证返回一致的数据。
+
+    此选项不适合高并发场合。
+
+- TRY_STRONG: 尝试强一致。
+
+    除非缓存中现有数据是一致的，否则，抛出异常：`io.github.dtm.cache.DirtyCacheException`
+
+    此异常可以让界面显示：“数据展示不可用，请稍后重试”，从而引导界面的到一致的数据。
+
+
+Consistency采用多级继承覆盖的配置方法
+
+1. 全局的`CacheClient`对象的consistency属性，由spring boot配置文件`application.yml`或`applicaiton.properties`中的配置`rockscache.consistency`决定
+
+   > 如果配置文件未指定其值，此配置默认为EVENTUAL
+
+2. 从`CacheClient`创建`Cache`时，可以覆盖步骤1中的设置
+
+   ```java
+   @Bean(CacheNames.ORDER)
+   public Cache<Long, Order> orderCache() {
+       return cacheClient
+               .newCacheBuilder(
+                       "order-", 
+                       Long.class, 
+                       Order.class 
+               )
+               .setConsistency(Consistency.STRONG) // 覆盖全局配置
+               .setJavaLoader( 
+                       Order::getId, 
+                       orderRepository::findAllById 
+               )
+               .build();
+    }
+   ```
+
+   > 如果缓存级的配未指定，继承全局配置。
+
+3. 构建新的Cache，覆盖旧Cache
+
+   ```
+   Cache<K, V> newCache = oldCache.toCache(Consistency.STRONG);
+   ```
+
+4. 查询时明确指定Consistency
+
+   `fetch(K, Consistency)`和`fetchAll(Collection<K>, Consistency)`这两个数据查询的重载版本，明确指定Consistency，无视任何级别的配置。
