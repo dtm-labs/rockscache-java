@@ -157,7 +157,7 @@ public class CacheConfig {
 
    默认情况下，redis中的值，为该类型的Java对象进行jackson序列化的结果。
 
-4. setJavaLoader方法表示，如果制定的数据不存在，该如何从数据库中加载。
+4. setJavaLoader方法表示，如果查看的数据在reids中不存在，该如何从数据库中加载。
 
    > 这里的`setJavaLoader`是针对Java开发者的，如果是kotlin开发者，请调用`setKtLoader`。
 
