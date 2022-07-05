@@ -294,19 +294,19 @@ enum class Consistency {
 }
 ```
 
-- EVENTUAL: 最终一致。
+- **EVENTUAL**: 最终一致。
 
     只要redis中存在数据，无论是否一致，都立即返回。
 
     如果此举导致某个不一致的数据被返回了，系统会让后续请求尽快地能拿到一致的新数据。
 
-- STRONG: 强一致
+- **STRONG**: 强一致
 
     除非redis中现有数据是一致的；否则，以等待为代价，保证返回一致的数据。
 
     此选项不适合高并发场合。
 
-- TRY_STRONG: 尝试强一致。
+- **TRY_STRONG**: 尝试强一致。
 
     除非redis中现有数据是一致的；否则，抛出异常：`io.github.dtm.cache.DirtyCacheException`
 
