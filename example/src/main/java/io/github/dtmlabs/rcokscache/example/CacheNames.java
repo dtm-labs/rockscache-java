@@ -9,5 +9,5 @@ public class CacheNames {
      *
      * In actual projects, you declare many cache names.
      */
-    public static final String EMPLOYEE = "employee";
+    public static final String EMPLOYEE = "employeeCache";
 }

@@ -31,7 +31,7 @@ public class CacheConfig {
     public Cache<Long, Employee> employeeCache() {
         return cacheClient
                 .newCacheBuilder(
-                        CacheNames.EMPLOYEE + "-",
+                        "employee-",
                         Long.class,
                         Employee.class
                 )
