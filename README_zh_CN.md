@@ -29,3 +29,141 @@
 6. 访问http://localhost:8080/ui
 
 ## 如何构建自己的项目
+
+### 添加依赖
+
+先建立一个spring-boot项目。
+
+- 对于使用gradle的用户，请添加依赖
+  ```
+  implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.4'
+  ```
+
+- 对于使用maven的用户，请添加依赖
+  <dependency>
+    <groupId>io.github.dtm-labs</groupId>
+    <artifactId>rockscache-spring-boot</artifactId>
+    <version>0.0.4</version>
+  </dependency>
+
+### 在application.properties或application.yml中定义spring.redis相关配置
+
+### 定义程序需要的所有缓存名
+
+```java
+public class CacheNames {
+    private CachesNames() {}
+    public static final String PRODUCT = "productCache";
+    public static final String ORDER = "orderCache";
+    public static final String USER = "userCache";
+}
+```
+
+### 创建长须需要的所有缓存实例
+
+```java
+@Configuration
+public class CacheConfig {
+
+    private final CacheClinet cacheClient;
+
+    private final ProductRepository productRepository;
+
+    private final OrderRepository orderRepository;
+
+    private final UserRepository userRepository;
+
+    public CacheConfig(
+
+        // 只要依赖了rockscache-spring-boot
+        // CacheClient对象就会被自动创建，
+        // 简单地注入即可 
+        CacheClient cacheClient,
+
+        // 注入所有数据访问对象
+        ProductRepository productRepository,
+        OrderRepository orderRepository,
+        UserRepository userRepository
+
+    ) {
+        this.cacheClient = cacheClient;
+
+        this.productRepository = productRepository;
+        this.orderRepository = orderRepository;
+        this.userRepository = userRepository;
+    }
+
+    @Bean(CacheNames.PRODUCT)
+    public Cache<Long, Product> productCache() {
+        return cacheClient
+                .newCacheBuilder(
+                        "product-", // 1
+                        Long.class, // 2
+                        Product.class //3
+                )
+                .setJavaLoader( //4
+                        Product::getId, // 5
+                        productRepository::findAllById //6
+                )
+                .build();
+    }
+
+    @Bean(CacheNames.ORDER)
+    public Cache<Long, Order> orderCache() {
+        return cacheClient
+                .newCacheBuilder(
+                        "order-", // 1
+                        Long.class, // 2
+                        Order.class // 3
+                )
+                .setJavaLoader( // 4
+                        Order::getId, // 5
+                        orderRepository::findAllById // 6
+                )
+                .build();
+    }
+
+    @Bean(CacheNames.USER)
+    public Cache<Long, User> userCache() {
+        return cacheClient
+                .newCacheBuilder(
+                        "user-", // 1
+                        Long.class, // 2
+                        User.class // 3
+                )
+                .setJavaLoader( // 4
+                        User::getId, // 5
+                        userRepository::findAllById // 6
+                )
+                .build();
+    }
+
+} 
+```
+
+上面的代码创建了程序所需要的所有缓存时例，对于代码中注释，解释如下
+
+1. 设置缓存中键的前缀
+
+   redis的键是字符串，由该前缀和用户的业务键拼接而成。
+
+   例如，上例中，订单缓冲的前缀为`order-`，那么id为`1`的订单，在redis中对应的键就是`order-1`
+
+2. 键类型
+
+3. 值类型
+
+   默认情况下，redis中的值，为该类型的Java对象进行jackson序列化的结果。
+
+4. setJavaLoader方法表示，如果制定的数据不存在，该如何从数据库中加载。
+
+   > 这里的setJavaLoader是针对Java开发者的，如果是kotlin开发者，请调用setKtLoader
+
+5. 如果底层数据访问对象返回List&lt;V&gt; 而非Map&lt;K, V&gt;，这个Lambda表达式表示如何从值对象获得键。
+
+   > 如果底层数据对象直接返回Map&lt;K, V&gt; 就会调用setJavaLoader方法的其他重载形式，而其他重载形式根本就无此参数。对于某些根本没有id的对象，这些重载版会很有用。
+
+6. 一个Lambda表示，表示底层数据访问对象的行为
+
+   > 在本文所讨论用法所涉及的重载版本中，这个lambda的签名是(List<K>) -> List<V>。在使用spring-data的前提下，这个形式的数据查询总会被自动生成，无需开发。
+
