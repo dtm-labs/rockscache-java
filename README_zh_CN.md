@@ -365,7 +365,7 @@ Consistency采用多级继承覆盖的配置方法
 |rockscache.waitReplicasTimeout|和waitReplicas配合使用，等待时间|Duration|PT3S|
 |rockscache.isDisableCacheRead|是否禁用缓存读取能力，如果禁用，不再使用缓存而直接读取数据库|boolean|false|
 |rockscache.isDisableCacheDelete|是否禁用缓存删除能力，如果禁用，`tagAsDeleted`/`tagAllAsDeleted`操作内部无任何效果|boolean|false|
-|rockscache.consistency|致性要求的全局默认配置|Consistency|EVENTAL|
+|rockscache.consistency|一致性要求的全局默认配置|Consistency|EVENTAL|
 |rockscache.batchSize|批量操作数据个数的上限，`fetchAll`和`tagAllAsDeleted`指定数据过多时，按此限制分批操作；`lockOperatorAll`指定数据过多则抛出异常|int|128|
 
 
