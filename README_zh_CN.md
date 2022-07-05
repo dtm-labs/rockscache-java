@@ -345,7 +345,7 @@ Consistency采用多级继承覆盖的配置方法
 
 |配置项|描述|类型|默认值|
 |-----|----|----|------|
-|rockscache.globalKeyPrefix|如果不同微服务共享redis(虽然不推荐，但是有可能)，为了防止不同微服务的缓存彼此打架而引入的名字空间。加入指定为`my-service-`，这时reids中key的名称为`my-service-order-1`|String|无|
+|rockscache.globalKeyPrefix|如果不同微服务共享redis(虽然不推荐，但是有可能)，为了防止不同微服务的缓存数据彼此打架而引入的名字空间。假如指定为`my-service-`，这时reids中数据键为`my-service-order-1`|String|无|
 |           |            |             |               |
 |rockscache.delay|被`tagAsDeleted`/`tagAllAsDeleted`的数据在redis中的过期时间|Duration|PT10S|
 |rockscache.emptyExpire|null数据在reids中的过期时间|Duration|PT60S|
@@ -355,8 +355,8 @@ Consistency采用多级继承覆盖的配置方法
 |rockscache.waitReplicasTimeout|和waitReplicas配合使用，等待时间|Duration|PT3S|
 |rockscache.isDisableCacheRead|是否禁用缓存读取能力，如果禁用，不再使用缓存而直接读取数据库|boolean|false|
 |rockscache.isDisableCacheDelete|是否禁用缓存删除能力，如果禁用，`tagAsDeleted`/`tagAllAsDeleted`操作内部无任何效果|boolean|false|
-|rockscache.consistency|全局的默认一致性要求|Consistency|EVENTAL|
-|rockscache.batchSize|批量操作上限，`fetchAll`和`tagAllAsDeleted`指定数据过多时，按此限制分批操作；`lockOperatorAll`指定数据过多则抛出异常|int|128|
+|rockscache.consistency|致性要求的全局默认配置|Consistency|EVENTAL|
+|rockscache.batchSize|批量操作数据个数的上限，`fetchAll`和`tagAllAsDeleted`指定数据过多时，按此限制分批操作；`lockOperatorAll`指定数据过多则抛出异常|int|128|
 
 
 
