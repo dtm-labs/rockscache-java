@@ -36,7 +36,7 @@
 
 - 对于使用gradle的用户，请添加依赖
   ```
-  implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.4'
+  implementation 'io.github.dtm-labs:rockscache-spring-boot:0.0.5'
   ```
 
 - 对于使用maven的用户，请添加依赖
@@ -44,7 +44,7 @@
   <dependency>
     <groupId>io.github.dtm-labs</groupId>
     <artifactId>rockscache-spring-boot</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
   </dependency>
   ```
   
