@@ -11,7 +11,7 @@
 1. git clone本项目，使用IDE打开其中example目录所代表的工程，等待gradle下载所有依赖。
 
 2. 使用Docker在本机构建一个redis服务，端口保持默认的6379
-   > 如果想基于现有的mysql运行此demo，请修改[application.yml](https://github.com/dtm-labs/rockscache-java/blob/main/example/src/main/resources/application.yml)中sprin.redis相关配置。
+   > 如果想基于现有的redis运行此demo，请修改[application.yml](https://github.com/dtm-labs/rockscache-java/blob/main/example/src/main/resources/application.yml)中sprin.redis相关配置。
 
 3. 使用Docker在本机构建一个mysql服务，端口保持默认的3306
    > 如果想基于现有的mysql运行此demo，请修改[application.yml](https://github.com/dtm-labs/rockscache-java/blob/main/example/src/main/resources/application.yml)中sprin.datasource相关配置。
