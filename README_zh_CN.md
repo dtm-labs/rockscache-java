@@ -2,7 +2,7 @@
 
 # rockscache-java
 
-一个 Redis缓存库，确保redis和DB的的一致性，支持最终一致和强一致性两种模式。
+一个 Redis缓存库，确保redis和DB的的一致性，支持最终一致和强一致两种模式。
 
 本库是go语言实现的[rockscache](https://github.com/dtm-labs/rockscache)的Java移植版，原项目文档中对工作原理有详尽的阐述。因此，本文不重复原理阐述，仅介绍使用方法。
 
