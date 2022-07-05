@@ -169,3 +169,82 @@ public class CacheConfig {
 
    > 在本文所讨论用法所涉及的重载版本中，这个lambda的签名是`(List<K>) -> List<V>`。在使用spring-data的前提下，这个形式的数据查询总会被自动生成，无需开发。
 
+### 注入缓存
+
+```java
+@Service
+public class OrderService {
+    
+    private Cache<Long, Order> orderCache;
+    
+    private OrderRepository orderRepository;
+
+    public OrderSerivce(
+
+        // 由于缓存对象由很多个，请明确指定@Qualifier
+        @Qualifier(CacheNames.ORDER) Cache<Long> orderCache,
+
+        OrderRepository orderRepository
+    )
+    
+    public Order findOrder(long id) {
+        return orderCache.get(id);
+    }
+
+    public void saveOrder(Order order) {
+        
+        // 先修改数据库
+        employeeRepository.save(order);
+
+        /* 在数据库修改完成后，
+         * 将被修改的redis数据标记成已删除
+         *
+         * 这个例子仅仅是烦如何使用tagAsDeleted，
+         * 不示范如何应对tagAsDeleted这个操作的异常的情况
+         *（更极端的案例，tagAsDeleted之前程序就挂了，没执行）
+         *
+         * 在实际项目中，请使用你喜欢的任何
+         * 可靠消息技术，保证tagAsDeleted一定会被执行。
+         *
+         * DTM二阶段消息就是一个理想的选择。
+         */
+        orderCache.tagAsDeleted(order.getId());
+    }
+}
+```
+
+### Cache接口的所有方法
+
+```kotlin
+interface Cache<K, V> {
+
+    fun toCache(consistency: Consistency): Cache<K, V>
+
+    fun fetch(key: K): V? =
+        fetchAll(setOf(key))[key]
+
+    fun fetch(key: K, consistency: Consistency): V? =
+        fetchAll(setOf(key), consistency)[key]
+
+    fun fetchAll(keys: Collection<K>): Map<K, V>
+
+    fun fetchAll(keys: Collection<K>, consistency: Consistency): Map<K, V>
+
+    fun tagAsDeleted(key: K) {
+        tagAllAsDeleted(setOf(key))
+    }
+
+    fun tagAllAsDeleted(keys: Collection<K>)
+
+    fun lockOperator(key: K, lockId: String): LockOperator<K> =
+        lockAllOperator(setOf(key), lockId)
+
+    fun lockAllOperator(keys: Collection<K>, lockId: String): LockOperator<K>
+}
+```
+
+- toCache：对于`fetch(K)`和`fetchAll(Collection<K>)`这两个没有明确指定数据型一致性要求，即`Consistency`。默认情况下，会采用缓存对象默认的一致性。
+
+  > 注意：
+  > 
+  > 此方法并不会改表当前Cache的默认Consistency，而是创建一个新的Cache，除了默认的Consistency不同外，新旧Cache的功能没有任何差异。
