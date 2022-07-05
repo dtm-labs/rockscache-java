@@ -188,7 +188,7 @@ public class OrderService {
 
     public OrderSerivce(
 
-        // 由于缓存对象由很多个，请明确指定@Qualifier
+        // 由于缓存对象有很多个，请明确指定@Qualifier
         @Qualifier(CacheNames.ORDER) Cache<Long> orderCache,
 
         OrderRepository orderRepository
@@ -294,19 +294,19 @@ enum class Consistency {
 }
 ```
 
-- EVENTUAL: 最终一致。
+- **EVENTUAL**: 最终一致。
 
     只要redis中存在数据，无论是否一致，都立即返回。
 
     如果此举导致某个不一致的数据被返回了，系统会让后续请求尽快地能拿到一致的新数据。
 
-- STRONG: 强一致
+- **STRONG**: 强一致
 
     除非redis中现有数据是一致的；否则，以等待为代价，保证返回一致的数据。
 
     此选项不适合高并发场合。
 
-- TRY_STRONG: 尝试强一致。
+- **TRY_STRONG**: 尝试强一致。
 
     除非redis中现有数据是一致的；否则，抛出异常：`io.github.dtm.cache.DirtyCacheException`
 
@@ -365,7 +365,7 @@ Consistency采用多级继承覆盖的配置方法
 |rockscache.waitReplicasTimeout|和waitReplicas配合使用，等待时间|Duration|PT3S|
 |rockscache.isDisableCacheRead|是否禁用缓存读取能力，如果禁用，不再使用缓存而直接读取数据库|boolean|false|
 |rockscache.isDisableCacheDelete|是否禁用缓存删除能力，如果禁用，`tagAsDeleted`/`tagAllAsDeleted`操作内部无任何效果|boolean|false|
-|rockscache.consistency|致性要求的全局默认配置|Consistency|EVENTAL|
+|rockscache.consistency|一致性要求的全局默认配置|Consistency|EVENTAL|
 |rockscache.batchSize|批量操作数据个数的上限，`fetchAll`和`tagAllAsDeleted`指定数据过多时，按此限制分批操作；`lockOperatorAll`指定数据过多则抛出异常|int|128|
 
 
