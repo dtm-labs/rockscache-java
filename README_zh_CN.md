@@ -50,6 +50,13 @@
   
 ### 在application.properties或application.yml中定义spring.redis相关配置
 
+```
+spring:
+  redis:
+    host: localhost
+    port: 6379
+```
+
 ### 定义程序需要的所有缓存名
 
 ```java
